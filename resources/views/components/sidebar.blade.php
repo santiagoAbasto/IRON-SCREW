@@ -16,7 +16,10 @@
         @endif
     </nav>
 
-    <a class="sidebar-logout" href="{{ route('logout') }}">
-        <img src="{{ asset('assets/figma/logout.svg') }}" alt=""><span>Cerrar Sesión</span>
-    </a>
+    <form class="sidebar-logout-form" method="post" action="{{ route('logout') }}">
+        @csrf
+        <button class="sidebar-logout" type="submit">
+            <img src="{{ asset('assets/figma/logout.svg') }}" alt=""><span>Cerrar Sesión</span>
+        </button>
+    </form>
 </aside>

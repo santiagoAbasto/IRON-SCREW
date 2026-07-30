@@ -1,41 +1,43 @@
 <?php
 
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\OrderController;
 use App\Http\Controllers\Settings\ProductController;
 use App\Http\Controllers\Settings\RoleController;
 use App\Http\Controllers\Settings\UserController;
-use App\Http\Controllers\OrderController;
 use App\Models\User;
 use App\Services\SessionProcessCancellation;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Route;
 
 Route::view('/', 'login')->name('login');
 Route::post('/login', function (Request $request) {
     $request->validate(['usuario' => ['required'], 'password' => ['required']]);
     $user = User::where('username', $request->usuario)->where('is_active', true)->first();
-    if (!$user || !Hash::check($request->password, $user->password)) {
+    if (! $user || ! Hash::check($request->password, $user->password)) {
         return back()->withErrors(['usuario' => 'Usuario o contraseña incorrectos.'])->onlyInput('usuario');
     }
     $request->session()->regenerate();
     app(SessionProcessCancellation::class)->clear($request->session()->getId());
     $request->session()->put(['iron_user' => $user->id, 'iron_role' => $user->role_id]);
-    return redirect()->route('orders.index');
-})->name('login.submit');
 
-Route::get('/logout', function (Request $request, SessionProcessCancellation $cancellation) {
+    return redirect()->route('orders.index');
+})->middleware('throttle:5,1')->name('login.submit');
+
+Route::post('/logout', function (Request $request, SessionProcessCancellation $cancellation) {
     $cancellation->cancel($request->session()->getId());
     $request->session()->invalidate();
     $request->session()->regenerateToken();
+
     return redirect()->route('login');
 })->name('logout');
 
 Route::middleware('iron.auth')->group(function () {
-    Route::get('/ordenes', [OrderController::class,'index'])->middleware('permission:orders.view')->name('orders.index');
-    Route::get('/ordenes/{order}', [OrderController::class,'show'])->middleware('permission:orders.view')->name('orders.show');
-    Route::post('/ordenes/{order}/actualizar-detalle', [OrderController::class,'refreshDetail'])->middleware('permission:orders.view')->name('orders.refresh-detail');
-    Route::patch('/ordenes/{order}/finalizar', [OrderController::class,'finalize'])->middleware('permission:orders.manage')->name('orders.finalize');
-    Route::post('/ordenes/sincronizar/contabilium', [OrderController::class,'sync'])->middleware('permission:orders.manage')->name('orders.sync');
+    Route::get('/ordenes', [OrderController::class, 'index'])->middleware('permission:orders.view')->name('orders.index');
+    Route::get('/ordenes/{order}', [OrderController::class, 'show'])->middleware('permission:orders.view')->name('orders.show');
+    Route::post('/ordenes/{order}/actualizar-detalle', [OrderController::class, 'refreshDetail'])->middleware('permission:orders.view')->name('orders.refresh-detail');
+    Route::patch('/ordenes/{order}/finalizar', [OrderController::class, 'finalize'])->middleware('permission:orders.manage')->name('orders.finalize');
+    Route::post('/ordenes/sincronizar/contabilium', [OrderController::class, 'sync'])->middleware('permission:orders.manage')->name('orders.sync');
     Route::view('/configuracion', 'settings.index')->middleware('permission:settings.view')->name('settings.index');
     Route::get('/configuracion/usuarios', [UserController::class, 'index'])->middleware('permission:users.manage')->name('settings.users');
     Route::post('/configuracion/usuarios', [UserController::class, 'store'])->middleware('permission:users.manage')->name('settings.users.store');

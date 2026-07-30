@@ -1,33 +1,63 @@
 # Iron Screw — Sistema de Etiquetas
 
-Aplicación interna desarrollada con Laravel y MySQL para sincronizar órdenes y productos desde Contabilium, administrar presentaciones por caja e imprimir etiquetas térmicas de 80 × 50 mm.
+Aplicación interna en Laravel 13 y MySQL que sincroniza productos y órdenes de venta desde Contabilium, administra unidades por caja y genera etiquetas térmicas de **80 × 50 mm**.
+
+## Funciones principales
+
+- Sincronización automática de órdenes cada minuto y productos cada hora.
+- Sincronización manual desde la pantalla de órdenes.
+- Las órdenes nuevas ingresan como `Pendiente`; sólo Iron Screw puede marcarlas `Finalizado`.
+- Conservación de las cantidades locales de fraccionado y granel durante cada sincronización.
+- Importación y exportación de cantidades mediante Excel.
+- Impresión de etiquetas por producto u orden.
+- Administración de usuarios, roles y permisos.
 
 ## Requisitos
 
-- PHP 8.3 o superior
-- Composer
-- Node.js y npm
-- MySQL
+- PHP 8.3 o superior con las extensiones requeridas por Laravel y `ZipArchive`.
+- Composer 2.
+- Node.js 20 o superior y npm.
+- MySQL 8 o MariaDB equivalente.
+- Nginx o Apache con HTTPS.
+- Un supervisor de procesos para la cola.
+- Cron disponible para el scheduler.
 
 ## Instalación local
 
 ```bash
+git clone https://github.com/santiagoAbasto/IRON-SCREW.git
+cd IRON-SCREW
 composer install
-npm install
+npm ci
 cp .env.example .env
 php artisan key:generate
 ```
 
-Configurá en `.env` la conexión MySQL, las credenciales de Contabilium y contraseñas iniciales seguras:
+Para desarrollo, cambiá temporalmente en `.env`:
 
 ```dotenv
+APP_ENV=local
+APP_DEBUG=true
+APP_URL=http://localhost:8001
+SESSION_SECURE_COOKIE=false
+```
+
+Configurá MySQL, Contabilium y dos contraseñas iniciales de al menos 16 caracteres:
+
+```dotenv
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=iron_screw
+DB_USERNAME=iron_screw
+DB_PASSWORD=
+
 CONTABILIUM_EMAIL=
 CONTABILIUM_API_KEY=
 IRON_ADMIN_PASSWORD=
 IRON_DEPOSIT_PASSWORD=
 ```
 
-Luego ejecutá:
+Luego:
 
 ```bash
 php artisan migrate --seed
@@ -35,22 +65,127 @@ npm run build
 composer run dev
 ```
 
-La aplicación quedará disponible en `http://localhost:8001`.
+La aplicación local se sirve en `http://localhost:8001`.
 
-## Sincronización
+## Despliegue en producción
 
-- Las órdenes nuevas de Contabilium ingresan siempre como `Pendiente`.
-- El estado solo cambia a `Finalizado` dentro de Iron Screw.
-- Las cantidades locales de Fraccionado y Granel se preservan al sincronizar productos.
-- El botón de sincronización inicia un worker temporal automáticamente.
-- Para desarrollo continuo, `composer run dev` inicia servidor, scheduler, worker, logs y Vite.
+El servidor web debe apuntar únicamente al directorio `public/`; nunca a la raíz del repositorio.
+
+```bash
+composer install --no-dev --classmap-authoritative
+npm ci
+npm run build
+php artisan migrate --force
+php artisan optimize
+```
+
+Configuración mínima obligatoria:
+
+```dotenv
+APP_ENV=production
+APP_DEBUG=false
+APP_URL=https://etiquetas.tudominio.com
+LOG_CHANNEL=daily
+LOG_LEVEL=warning
+
+SESSION_DRIVER=database
+SESSION_ENCRYPT=true
+SESSION_SECURE_COOKIE=true
+SESSION_HTTP_ONLY=true
+SESSION_SAME_SITE=lax
+
+QUEUE_CONNECTION=database
+CACHE_STORE=database
+```
+
+Aplicá permisos de escritura sólo a `storage/` y `bootstrap/cache/` para el usuario del servidor web. El resto del código debe permanecer de sólo lectura.
+
+### Cola
+
+En producción debe existir un worker permanente administrado por Supervisor, systemd o el panel del hosting:
+
+```bash
+php artisan queue:work --sleep=1 --tries=5 --timeout=240 --max-time=3600
+```
+
+Ejemplo conceptual de Supervisor:
+
+```ini
+[program:iron-screw-worker]
+command=php /var/www/iron-screw/artisan queue:work --sleep=1 --tries=5 --timeout=240 --max-time=3600
+directory=/var/www/iron-screw
+autostart=true
+autorestart=true
+stopasgroup=true
+killasgroup=true
+redirect_stderr=true
+stdout_logfile=/var/www/iron-screw/storage/logs/worker.log
+```
+
+Después de cada despliegue:
+
+```bash
+php artisan queue:restart
+```
+
+### Scheduler
+
+Agregá una sola entrada al cron:
+
+```cron
+* * * * * cd /var/www/iron-screw && php artisan schedule:run >> /dev/null 2>&1
+```
 
 ## Seguridad
 
-El repositorio no incluye `.env`, claves API, bases locales, dependencias, logs, cachés ni archivos compilados. Nunca subas credenciales reales al control de versiones.
+- El login limita intentos repetidos y regenera la sesión al autenticar.
+- Todas las acciones mutables usan `POST`, `PUT`, `PATCH` o `DELETE` con protección CSRF.
+- El cierre de sesión invalida la sesión y cancela procesos asociados.
+- Contraseñas nuevas: mínimo 12 caracteres, mayúsculas, minúsculas y números.
+- Las rutas se protegen por sesión activa y permisos de rol.
+- Las respuestas incluyen encabezados contra framing, MIME sniffing y exposición innecesaria.
+- `.env`, claves, bases locales, logs, cachés, dependencias y archivos compilados no se versionan.
 
-## Pruebas
+Antes de publicar:
+
+1. Usá HTTPS y redirigí todo HTTP a HTTPS.
+2. Generá una `APP_KEY` exclusiva para producción.
+3. Usá credenciales MySQL sin permisos administrativos y limitadas a esta base.
+4. Guardá las credenciales de Contabilium sólo en el gestor de secretos o `.env` del servidor.
+5. Restringí el acceso por VPN, firewall o allowlist si la aplicación es exclusivamente interna.
+6. Configurá backups automáticos de MySQL y probá su restauración.
+7. Rotá contraseñas iniciales y la API key si fueron compartidas fuera del equipo autorizado.
+8. Conservá `APP_DEBUG=false`; una página de excepción puede revelar información sensible.
+
+## Verificación
 
 ```bash
 php artisan test
+npm run build
+composer audit
+npm audit --omit=dev
 ```
+
+Comprobación de producción:
+
+```bash
+php artisan about --only=environment
+php artisan config:show app
+php artisan route:list
+php artisan schedule:list
+php artisan queue:monitor default:100
+```
+
+La prueba automatizada cubre login, cierre de sesión, permisos, gestión, sincronización, finalización de órdenes, importación Excel y reglas de seguridad. Antes de cada publicación también se recomienda probar visualmente el flujo completo contra un entorno staging con credenciales separadas de Contabilium.
+
+## Operación y recuperación
+
+- Revisá `storage/logs/laravel.log` y el log del worker ante errores.
+- Los jobs fallidos se consultan con `php artisan queue:failed`.
+- Reintentá un job con `php artisan queue:retry ID`.
+- Mantené una versión anterior desplegable y un backup compatible antes de migrar.
+- Para modo mantenimiento: `php artisan down --secret="token-temporal"` y luego `php artisan up`.
+
+## Licencia
+
+Software propietario de uso interno. No redistribuir sin autorización.
