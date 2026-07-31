@@ -86,7 +86,7 @@ class SecurityFlowTest extends TestCase
                 'role_id' => $role->id,
                 'is_active' => true,
             ])
-            ->assertSessionHasErrors('password');
+            ->assertSessionHasErrorsIn('createUser', 'password');
 
         $this->assertDatabaseMissing('users', ['username' => 'debil']);
     }

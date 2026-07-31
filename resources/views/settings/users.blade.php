@@ -13,5 +13,5 @@
   @empty <div class="empty">No hay usuarios registrados.</div>@endforelse
  </div>
 </section>
-<dialog class="form-dialog" id="new-user"><form method="post" action="{{ route('settings.users.store') }}">@csrf<button type="button" class="dialog-close" onclick="this.closest('dialog').close()">×</button><h2>Nuevo Usuario</h2>@include('settings.partials.user-form',['user'=>null])<button class="primary">Crear usuario</button></form></dialog>
+<dialog class="form-dialog" id="new-user" @if($errors->createUser->any()) data-auto-open-dialog @endif><form method="post" action="{{ route('settings.users.store') }}">@csrf<button type="button" class="dialog-close" onclick="this.closest('dialog').close()">×</button><h2>Nuevo Usuario</h2>@if($errors->createUser->any())<div class="dialog-errors" role="alert"><strong>Revisá estos datos:</strong><ul>@foreach($errors->createUser->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div>@endif @include('settings.partials.user-form',['user'=>null])<button class="primary">Crear usuario</button></form></dialog>
 @endsection

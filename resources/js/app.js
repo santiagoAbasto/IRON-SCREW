@@ -21,6 +21,11 @@ document.addEventListener('keydown', (event) => {
     }
 });
 
+const autoOpenDialog = document.querySelector('[data-auto-open-dialog]');
+if (autoOpenDialog instanceof HTMLDialogElement && !autoOpenDialog.open) {
+    autoOpenDialog.showModal();
+}
+
 document.querySelector('[data-sync-form]')?.addEventListener('submit', (event) => {
     const button = event.currentTarget.querySelector('[data-sync-button]');
     if (!button || button.disabled) return;
