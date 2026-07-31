@@ -69,7 +69,9 @@ class OrderFinalizationTest extends TestCase
             ->get(route('orders.show', $order))
             ->assertOk()
             ->assertSee('Imprimir todas las etiquetas')
-            ->assertSee('data-print-all-labels', false);
+            ->assertSee('data-print-all-labels', false)
+            ->assertSee('data-save-label-adjustment', false)
+            ->assertSee('Guardar ajuste');
     }
 
     public function test_order_detail_marks_only_the_requested_quantity_when_no_packaging_matches(): void

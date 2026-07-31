@@ -32,7 +32,7 @@ document.querySelectorAll('[data-label-open]').forEach((button) => {
     button.addEventListener('click', () => {
         const dialog = document.getElementById(button.dataset.labelOpen);
         if (!dialog) return;
-        updateLabelCalculation(dialog, true);
+        updateLabelCalculation(dialog, dialog.dataset.batchAdjusted !== 'true');
         dialog.showModal();
     });
 });
@@ -42,9 +42,20 @@ document.querySelectorAll('[data-dialog-close]').forEach((button) => {
 });
 
 document.querySelectorAll('[data-label-dialog]').forEach((dialog) => {
-    dialog.querySelector('[data-label-type]')?.addEventListener('change', () => updateLabelCalculation(dialog, true));
-    dialog.querySelector('[data-units-per-label]')?.addEventListener('input', () => updateLabelCalculation(dialog, true));
-    dialog.querySelector('[data-label-count]')?.addEventListener('input', () => updateLabelCalculation(dialog, false));
+    restoreLabelAdjustment(dialog);
+    dialog.querySelector('[data-label-type]')?.addEventListener('change', () => {
+        markLabelAdjustmentDirty(dialog);
+        updateLabelCalculation(dialog, true);
+    });
+    dialog.querySelector('[data-units-per-label]')?.addEventListener('input', () => {
+        markLabelAdjustmentDirty(dialog);
+        updateLabelCalculation(dialog, true);
+    });
+    dialog.querySelector('[data-label-count]')?.addEventListener('input', () => {
+        markLabelAdjustmentDirty(dialog);
+        updateLabelCalculation(dialog, false);
+    });
+    dialog.querySelector('[data-save-label-adjustment]')?.addEventListener('click', () => saveLabelAdjustment(dialog));
     dialog.querySelector('[data-print-labels]')?.addEventListener('click', () => printLabels(dialog));
 });
 
@@ -150,9 +161,13 @@ function printAllOrderLabels() {
         const quantity = Number(dialog.dataset.quantity);
         const bulk = Number(dialog.dataset.bulk);
         const fractioned = Number(dialog.dataset.fractioned);
-        const type = bulk > 0 ? 'bulk' : (fractioned > 0 ? 'fractioned' : 'unconfigured');
-        const units = bulk > 0 ? bulk : (fractioned > 0 ? fractioned : quantity);
-        const count = type === 'bulk' ? Math.max(1, Math.ceil(quantity / units)) : 1;
+        const adjusted = dialog.dataset.batchAdjusted === 'true';
+        const selectedType = dialog.querySelector('[data-label-type]')?.value;
+        const selectedUnits = Number(dialog.querySelector('[data-units-per-label]')?.value);
+        const selectedCount = Number(dialog.querySelector('[data-label-count]')?.value);
+        const type = adjusted ? selectedType : (bulk > 0 ? 'bulk' : (fractioned > 0 ? 'fractioned' : 'unconfigured'));
+        const units = adjusted && selectedUnits > 0 ? selectedUnits : (bulk > 0 ? bulk : (fractioned > 0 ? fractioned : quantity));
+        const count = adjusted && selectedCount > 0 ? Math.floor(selectedCount) : (type === 'bulk' ? Math.max(1, Math.ceil(quantity / units)) : 1);
 
         return Array.from({ length: count }, (_, index) => {
             const assigned = type === 'bulk'
@@ -164,6 +179,67 @@ function printAllOrderLabels() {
 
     const size = document.querySelector('[data-print-all-size]')?.value || '80x50';
     openPrintDialog(area, size);
+}
+
+function labelAdjustmentKey(dialog) {
+    return `iron-label-adjustment:${dialog.dataset.order || 'product'}:${dialog.dataset.code || 'unknown'}`;
+}
+
+function markLabelAdjustmentDirty(dialog) {
+    if (dialog.dataset.standalone === 'true') return;
+    dialog.dataset.batchAdjusted = 'false';
+    const button = dialog.querySelector('[data-save-label-adjustment]');
+    if (button) button.textContent = 'Guardar ajuste';
+}
+
+function saveLabelAdjustment(dialog) {
+    const type = dialog.querySelector('[data-label-type]')?.value;
+    const unitsInput = dialog.querySelector('[data-units-per-label]');
+    const countInput = dialog.querySelector('[data-label-count]');
+    const units = Number(unitsInput?.value);
+    const count = Number(countInput?.value);
+
+    if (!Number.isFinite(units) || units < 1) {
+        updateLabelCalculation(dialog, false);
+        unitsInput?.focus();
+        return;
+    }
+    if (!Number.isFinite(count) || count < 1) {
+        countInput?.focus();
+        return;
+    }
+
+    const adjustment = { type, units, count: Math.floor(count) };
+    dialog.dataset.batchAdjusted = 'true';
+    try {
+        sessionStorage.setItem(labelAdjustmentKey(dialog), JSON.stringify(adjustment));
+    } catch (_) {
+        // It still remains saved in the current page when storage is unavailable.
+    }
+    const button = dialog.querySelector('[data-save-label-adjustment]');
+    if (button) button.textContent = '✓ Ajuste guardado';
+    dialog.close();
+}
+
+function restoreLabelAdjustment(dialog) {
+    if (dialog.dataset.standalone === 'true') return;
+    let adjustment = null;
+    try {
+        adjustment = JSON.parse(sessionStorage.getItem(labelAdjustmentKey(dialog)) || 'null');
+    } catch (_) {
+        adjustment = null;
+    }
+    if (!adjustment || !['bulk', 'fractioned'].includes(adjustment.type)) return;
+    if (!(Number(adjustment.units) > 0) || !(Number(adjustment.count) > 0)) return;
+
+    dialog.querySelector('[data-label-type]').value = adjustment.type;
+    dialog.querySelector('[data-units-per-label]').value = adjustment.units;
+    dialog.querySelector('[data-label-count]').value = Math.floor(adjustment.count);
+    dialog.querySelector('[data-units-per-label]').dataset.lastType = adjustment.type;
+    dialog.dataset.batchAdjusted = 'true';
+    const button = dialog.querySelector('[data-save-label-adjustment]');
+    if (button) button.textContent = '✓ Ajuste guardado';
+    updateLabelCalculation(dialog, false);
 }
 
 function labelMarkup(data, type, assigned, position, total, standalone) {

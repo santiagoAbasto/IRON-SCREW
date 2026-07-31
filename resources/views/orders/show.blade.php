@@ -71,7 +71,7 @@
  <div class="form-grid"><label>Tipo de etiqueta<select data-label-type><option value="bulk">Granel</option><option value="fractioned">Fraccionado{{ $fractioned?' ('.number_format($fractioned,0,',','.').')':'' }}</option></select></label><label>Tamaño de etiqueta<select data-label-size><option value="80x50" selected>80 × 50 mm</option><option value="100x80">100 × 80 mm</option></select></label><label>Unidades por etiqueta<input type="number" min="1" placeholder="Ingresar unidades" data-units-per-label></label><label>Total de cajas / etiquetas<input type="number" min="1" data-label-count></label></div>
  <div class="quantity-alert" data-quantity-alert hidden></div><p class="label-help" data-label-help></p>
  <div class="label-preview" data-label-preview><div class="thermal-label"><div class="thermal-customer">{{ strtoupper($order->customer) }}</div><div class="thermal-product"><strong>{{ $item->description }}</strong><span>{{ $item->code }}</span><b data-preview-units>— UNIDADES</b></div><div class="thermal-brand"><img src="{{ asset('assets/figma/label-logo.png') }}" alt=""><div><strong>IRON<br>SCREW</strong><small>TORNILLOS AUTOPERFORANTES</small></div><em data-preview-type>GRANEL</em></div></div></div>
- <button class="primary" type="button" data-print-labels>Imprimir etiqueta</button>
+ <div class="label-dialog-actions"><button class="secondary-button" type="button" data-save-label-adjustment>Guardar ajuste</button><button class="primary" type="button" data-print-labels>Imprimir etiqueta</button></div>
 </dialog>
 @empty
 <div class="empty">Todavía no hay artículos guardados para esta orden. La actualización quedó en cola.</div>
