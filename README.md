@@ -170,6 +170,19 @@ composer audit
 npm audit --omit=dev
 ```
 
+### Configuración de impresión SATO
+
+Para etiquetas de 80 × 50 mm, el controlador de la impresora debe usar exactamente:
+
+- Papel personalizado: `80,0 mm × 50,0 mm`.
+- Orientación: horizontal.
+- Escala: `100 %` (sin ajustar al área imprimible).
+- Márgenes: ninguno.
+- Sensor de material: GAP/separación.
+- Encabezados y pies del navegador: desactivados.
+
+Al colocar un rollo nuevo, ejecutá la calibración de material desde el controlador o la impresora. Si cada impresión queda más desplazada que la anterior o aparece una zona blanca grande entre diseños, el alto configurado o el paso detectado por el sensor no coincide con 50 mm; ese corrimiento acumulativo no se corrige desplazando el diseño.
+
 Comprobación de producción:
 
 ```bash
