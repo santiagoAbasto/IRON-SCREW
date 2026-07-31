@@ -4,6 +4,7 @@
 <div class="back-title order-detail-title"><a href="{{ route('orders.index') }}">‹</a><h1>{{ $order->number }}</h1>
  <div class="actions order-detail-actions">
  @if($order->items->isNotEmpty())
+ <label class="print-size-control">Tamaño<select data-print-all-size><option value="80x50" selected>80 × 50 mm</option><option value="100x80">100 × 80 mm</option></select></label>
  <button class="secondary-button print-all-button" type="button" data-print-all-labels>Imprimir todas las etiquetas</button>
  @endif
  @if(strtolower($order->status??'')==='pendiente' && in_array('orders.manage',$ironUser->role?->permissions??[]))
@@ -67,7 +68,7 @@
  <button type="button" class="dialog-close" data-dialog-close>×</button><h2>Imprimir etiquetas</h2><p class="label-product"><strong>{{ $item->code }}</strong> · {{ $item->description }}</p>
  @if(!$fractioned||!$bulk)<div class="quantity-alert"><strong>Presentación pendiente de configurar.</strong><br>Podés indicar las unidades manualmente o completar el producto desde Configuración.</div>@endif
  <div class="label-summary"><span>Pedido <b>{{ number_format($quantity,0,',','.') }}</b></span><span>Fraccionado <b>{{ $fractioned?:'—' }}</b></span><span>Granel <b>{{ $bulk?:'—' }}</b></span></div>
- <div class="form-grid"><label>Tipo de etiqueta<select data-label-type><option value="bulk">Granel</option><option value="fractioned">Fraccionado{{ $fractioned?' ('.number_format($fractioned,0,',','.').')':'' }}</option></select></label><label>Unidades por etiqueta<input type="number" min="1" placeholder="Ingresar unidades" data-units-per-label></label><label>Total de cajas / etiquetas<input type="number" min="1" data-label-count></label></div>
+ <div class="form-grid"><label>Tipo de etiqueta<select data-label-type><option value="bulk">Granel</option><option value="fractioned">Fraccionado{{ $fractioned?' ('.number_format($fractioned,0,',','.').')':'' }}</option></select></label><label>Tamaño de etiqueta<select data-label-size><option value="80x50" selected>80 × 50 mm</option><option value="100x80">100 × 80 mm</option></select></label><label>Unidades por etiqueta<input type="number" min="1" placeholder="Ingresar unidades" data-units-per-label></label><label>Total de cajas / etiquetas<input type="number" min="1" data-label-count></label></div>
  <div class="quantity-alert" data-quantity-alert hidden></div><p class="label-help" data-label-help></p>
  <div class="label-preview" data-label-preview><div class="thermal-label"><div class="thermal-customer">{{ strtoupper($order->customer) }}</div><div class="thermal-product"><strong>{{ $item->description }}</strong><span>{{ $item->code }}</span><b data-preview-units>— UNIDADES</b></div><div class="thermal-brand"><img src="{{ asset('assets/figma/label-logo.png') }}" alt=""><div><strong>IRON<br>SCREW</strong><small>TORNILLOS AUTOPERFORANTES</small></div><em data-preview-type>GRANEL</em></div></div></div>
  <button class="primary" type="button" data-print-labels>Imprimir etiqueta</button>

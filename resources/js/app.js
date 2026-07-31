@@ -124,6 +124,7 @@ function printLabels(dialog) {
     const quantity = Number(dialog.dataset.quantity);
     const type = dialog.querySelector('[data-label-type]').value;
     const standalone = dialog.dataset.standalone === 'true';
+    const size = dialog.querySelector('[data-label-size]')?.value || '80x50';
     const area = document.querySelector('#label-print-area');
     if (!area) return;
 
@@ -137,7 +138,7 @@ function printLabels(dialog) {
     }).join('');
 
     dialog.close();
-    openPrintDialog(area);
+    openPrintDialog(area, size);
 }
 
 function printAllOrderLabels() {
@@ -161,7 +162,8 @@ function printAllOrderLabels() {
         }).join('');
     }).join('');
 
-    openPrintDialog(area);
+    const size = document.querySelector('[data-print-all-size]')?.value || '80x50';
+    openPrintDialog(area, size);
 }
 
 function labelMarkup(data, type, assigned, position, total, standalone) {
@@ -184,12 +186,23 @@ function labelMarkup(data, type, assigned, position, total, standalone) {
     </article>`;
 }
 
-function openPrintDialog(area) {
-    const images = Array.from(area.querySelectorAll('img'));
-    Promise.all(images.map((image) => image.complete ? Promise.resolve() : new Promise((resolve) => {
-        image.addEventListener('load', resolve, { once: true });
-        image.addEventListener('error', resolve, { once: true });
-    }))).then(() => window.print());
+function openPrintDialog(area, size = '80x50') {
+    const normalizedSize = size === '100x80' ? '100x80' : '80x50';
+    document.documentElement.dataset.printLabelSize = normalizedSize;
+
+    let pageStyle = document.querySelector('#label-page-size');
+    if (!pageStyle) {
+        pageStyle = document.createElement('style');
+        pageStyle.id = 'label-page-size';
+        document.head.appendChild(pageStyle);
+    }
+    pageStyle.textContent = normalizedSize === '100x80'
+        ? '@page { size: 100mm 80mm; margin: 0; }'
+        : '@page { size: 80mm 50mm; margin: 0; }';
+
+    // Keep the browser print call in the original click event. Delaying it until
+    // images load can make Chrome/Safari discard the user activation.
+    window.print();
 }
 
 function escapeHtml(value = '') {
