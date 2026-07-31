@@ -2,9 +2,14 @@
 @section('title','Detalle '.$order->number)
 @section('content')
 <div class="back-title order-detail-title"><a href="{{ route('orders.index') }}">‹</a><h1>{{ $order->number }}</h1>
+ <div class="order-detail-actions">
+ @if($order->items->isNotEmpty())
+ <button class="secondary-button print-all-button" type="button" data-print-all-labels>Imprimir todas las etiquetas</button>
+ @endif
  @if(strtolower($order->status??'')==='pendiente' && in_array('orders.manage',$ironUser->role?->permissions??[]))
  <form method="post" action="{{ route('orders.finalize',$order) }}" onsubmit="return confirm('¿Finalizar esta orden? Esta acción no podrá deshacerse desde el sistema.')">@csrf @method('patch')<button class="primary">✓ Finalizar orden</button></form>
  @endif
+ </div>
 </div>
 <section class="panel order-summary"><h2>Detalle de OV - {{ $order->number }}</h2><div class="summary-grid"><label>Comprador<input value="{{ $order->customer }}" disabled></label><label>Fecha de creación<input value="{{ $order->created_on?->format('d/m/Y') }}" disabled></label><label>Estado<input value="{{ $order->status }}" disabled></label><label>Depósito<input value="{{ $order->warehouse ?: '—' }}" disabled></label></div></section>
 @if($detailRefreshing)
@@ -65,7 +70,7 @@
  <div class="form-grid"><label>Tipo de etiqueta<select data-label-type><option value="bulk">Granel</option><option value="fractioned">Fraccionado{{ $fractioned?' ('.number_format($fractioned,0,',','.').')':'' }}</option></select></label><label>Unidades por etiqueta<input type="number" min="1" placeholder="Ingresar unidades" data-units-per-label></label><label>Total de cajas / etiquetas<input type="number" min="1" data-label-count></label></div>
  <div class="quantity-alert" data-quantity-alert hidden></div><p class="label-help" data-label-help></p>
  <div class="label-preview" data-label-preview><div class="thermal-label"><div class="thermal-customer">{{ strtoupper($order->customer) }}</div><div class="thermal-product"><strong>{{ $item->description }}</strong><span>{{ $item->code }}</span><b data-preview-units>— UNIDADES</b></div><div class="thermal-brand"><img src="{{ asset('assets/figma/label-logo.png') }}" alt=""><div><strong>IRON<br>SCREW</strong><small>TORNILLOS AUTOPERFORANTES</small></div><em data-preview-type>GRANEL</em></div></div></div>
- <button class="primary" type="button" data-print-labels>Imprimir de todas formas</button>
+ <button class="primary" type="button" data-print-labels>Imprimir etiqueta</button>
 </dialog>
 @empty
 <div class="empty">Todavía no hay artículos guardados para esta orden. La actualización quedó en cola.</div>

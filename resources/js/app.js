@@ -48,6 +48,8 @@ document.querySelectorAll('[data-label-dialog]').forEach((dialog) => {
     dialog.querySelector('[data-print-labels]')?.addEventListener('click', () => printLabels(dialog));
 });
 
+document.querySelector('[data-print-all-labels]')?.addEventListener('click', printAllOrderLabels);
+
 function updateLabelCalculation(dialog, resetCount) {
     const quantity = Number(dialog.dataset.quantity);
     const standalone = dialog.dataset.standalone === 'true';
@@ -131,25 +133,63 @@ function printLabels(dialog) {
             : type === 'fractioned'
             ? units
             : Math.max(0, Math.min(units, quantity - (index * units)));
-        const customer = standalone ? '' : `<div class="thermal-customer">${escapeHtml(dialog.dataset.customer.toUpperCase())}</div>`;
-        const reference = standalone ? '' : ` · OV ${escapeHtml(dialog.dataset.order)}`;
-        return `<article class="printed-label">
-            ${customer}
-            <div class="thermal-product">
-                <strong>${escapeHtml(dialog.dataset.description)}</strong>
-                <span>${escapeHtml(dialog.dataset.code)}</span>
-                <b>${assigned.toLocaleString('es-AR')} UNIDADES</b>
-            </div>
-            <div class="thermal-brand">
-                <img src="${escapeHtml(dialog.dataset.logo)}" alt="">
-                <div><strong>IRON<br>SCREW</strong><small>TORNILLOS AUTOPERFORANTES</small></div>
-                <em>${type === 'bulk' ? 'GRANEL' : 'FRACCIONADO'}${reference} · ${index + 1}/${count}</em>
-            </div>
-        </article>`;
+        return labelMarkup(dialog.dataset, type, assigned, index + 1, count, standalone);
     }).join('');
 
     dialog.close();
-    window.print();
+    openPrintDialog(area);
+}
+
+function printAllOrderLabels() {
+    const dialogs = Array.from(document.querySelectorAll('[data-label-dialog]:not([data-standalone="true"])'));
+    const area = document.querySelector('#label-print-area');
+    if (!area || dialogs.length === 0) return;
+
+    area.innerHTML = dialogs.map((dialog) => {
+        const quantity = Number(dialog.dataset.quantity);
+        const bulk = Number(dialog.dataset.bulk);
+        const fractioned = Number(dialog.dataset.fractioned);
+        const type = bulk > 0 ? 'bulk' : (fractioned > 0 ? 'fractioned' : 'unconfigured');
+        const units = bulk > 0 ? bulk : (fractioned > 0 ? fractioned : quantity);
+        const count = type === 'bulk' ? Math.max(1, Math.ceil(quantity / units)) : 1;
+
+        return Array.from({ length: count }, (_, index) => {
+            const assigned = type === 'bulk'
+                ? Math.max(0, Math.min(units, quantity - (index * units)))
+                : (type === 'fractioned' ? units : quantity);
+            return labelMarkup(dialog.dataset, type, assigned, index + 1, count, false);
+        }).join('');
+    }).join('');
+
+    openPrintDialog(area);
+}
+
+function labelMarkup(data, type, assigned, position, total, standalone) {
+    const customer = standalone ? '' : `<div class="thermal-customer">${escapeHtml(data.customer.toUpperCase())}</div>`;
+    const reference = standalone ? '' : ` · OV ${escapeHtml(data.order)}`;
+    const typeLabel = type === 'bulk' ? 'GRANEL' : (type === 'fractioned' ? 'FRACCIONADO' : 'PEDIDO');
+
+    return `<article class="printed-label">
+        ${customer}
+        <div class="thermal-product">
+            <strong>${escapeHtml(data.description)}</strong>
+            <span>${escapeHtml(data.code)}</span>
+            <b>${assigned.toLocaleString('es-AR')} UNIDADES</b>
+        </div>
+        <div class="thermal-brand">
+            <img src="${escapeHtml(data.logo)}" alt="">
+            <div><strong>IRON<br>SCREW</strong><small>TORNILLOS AUTOPERFORANTES</small></div>
+            <em>${typeLabel}${reference} · ${position}/${total}</em>
+        </div>
+    </article>`;
+}
+
+function openPrintDialog(area) {
+    const images = Array.from(area.querySelectorAll('img'));
+    Promise.all(images.map((image) => image.complete ? Promise.resolve() : new Promise((resolve) => {
+        image.addEventListener('load', resolve, { once: true });
+        image.addEventListener('error', resolve, { once: true });
+    }))).then(() => window.print());
 }
 
 function escapeHtml(value = '') {

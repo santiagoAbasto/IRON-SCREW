@@ -1,6 +1,6 @@
 # Iron Screw — Sistema de Etiquetas
 
-Aplicación interna en Laravel 13 y MySQL que sincroniza productos y órdenes de venta desde Contabilium, administra unidades por caja y genera etiquetas térmicas de **80 × 50 mm**.
+Aplicación interna en Laravel 13 y MySQL que sincroniza productos y órdenes de venta desde Contabilium, administra unidades por caja y genera etiquetas térmicas de **100 × 80 mm**.
 
 ## Funciones principales
 
@@ -10,6 +10,8 @@ Aplicación interna en Laravel 13 y MySQL que sincroniza productos y órdenes de
 - Conservación de las cantidades locales de fraccionado y granel durante cada sincronización.
 - Importación y exportación de cantidades mediante Excel.
 - Impresión de etiquetas por producto u orden.
+- Impresión conjunta de todas las etiquetas de una orden, priorizando la presentación a granel.
+- Exclusión de órdenes canceladas del listado y del acceso operativo.
 - Administración de usuarios, roles y permisos.
 
 ## Requisitos
