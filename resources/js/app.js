@@ -80,7 +80,10 @@ function updateLabelCalculation(dialog, resetCount) {
     );
 
     if (!unitsInput.value || unitsInput.dataset.lastType !== type) {
-        unitsInput.value = expectedUnits > 0 ? expectedUnits : '';
+        const suggestedUnits = !standalone && quantity > 0 && expectedUnits > quantity
+            ? quantity
+            : expectedUnits;
+        unitsInput.value = suggestedUnits > 0 ? suggestedUnits : '';
         unitsInput.dataset.lastType = type;
     }
 
@@ -96,14 +99,15 @@ function updateLabelCalculation(dialog, resetCount) {
         return;
     }
 
-    const exact = standalone || quantity % units === 0;
+    const packagingUnits = expectedUnits > 0 ? expectedUnits : units;
+    const exact = standalone || quantity % packagingUnits === 0;
     const fractioned = type === 'fractioned';
     const calculatedCount = standalone ? 1 : Math.max(1, Math.ceil(quantity / units));
     if (resetCount || !countInput.value) countInput.value = calculatedCount;
 
-    const remainder = quantity % units;
+    const remainder = quantity % packagingUnits;
     alert.hidden = exact;
-    const fullBoxes = Math.floor(quantity / units);
+    const fullBoxes = Math.floor(quantity / packagingUnits);
     const partialDescription = fullBoxes > 0
         ? `${fullBoxes} ${fullBoxes === 1 ? 'caja completa' : 'cajas completas'} y 1 caja parcial de ${remainder.toLocaleString('es-AR')} unidades`
         : `1 caja parcial de ${remainder.toLocaleString('es-AR')} unidades`;
@@ -118,9 +122,10 @@ function updateLabelCalculation(dialog, resetCount) {
         : fractioned
         ? `Se proponen ${calculatedCount} ${calculatedCount === 1 ? 'etiqueta fraccionada' : 'etiquetas fraccionadas'} de ${units.toLocaleString('es-AR')} unidades. Podés cambiar la cantidad manualmente.`
         : remainder
-        ? `Se proponen ${calculatedCount} etiquetas: ${partialDescription}. La última etiqueta llevará la cantidad parcial real.`
+        ? `La presentación de ${packagingUnits.toLocaleString('es-AR')} no cierra con el pedido. Se proponen ${calculatedCount} etiquetas y la cantidad a imprimir puede ajustarse manualmente.`
         : `Se proponen ${calculatedCount} etiquetas de granel (${units.toLocaleString('es-AR')} unidades por etiqueta).`;
-    dialog.querySelector('[data-preview-units]').textContent = `${units.toLocaleString('es-AR')} UNIDADES`;
+    const previewUnits = standalone ? units : Math.min(units, quantity);
+    dialog.querySelector('[data-preview-units]').textContent = `${previewUnits.toLocaleString('es-AR')} UNIDADES`;
     dialog.querySelector('[data-preview-type]').textContent = type === 'bulk' ? 'GRANEL' : 'FRACCIONADO';
 }
 
@@ -215,7 +220,9 @@ function setRecommendedLabelType(dialog) {
     const typeInput = dialog.querySelector('[data-label-type]');
     const unitsInput = dialog.querySelector('[data-units-per-label]');
     typeInput.value = recommendation.type;
-    unitsInput.value = recommendation.units;
+    unitsInput.value = recommendation.units > Number(dialog.dataset.quantity)
+        ? Number(dialog.dataset.quantity)
+        : recommendation.units;
     unitsInput.dataset.lastType = recommendation.type;
 }
 
