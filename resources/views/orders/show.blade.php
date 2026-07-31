@@ -2,7 +2,7 @@
 @section('title','Detalle '.$order->number)
 @section('content')
 <div class="back-title order-detail-title"><a href="{{ route('orders.index') }}">‹</a><h1>{{ $order->number }}</h1>
- <div class="order-detail-actions">
+ <div class="actions order-detail-actions">
  @if($order->items->isNotEmpty())
  <button class="secondary-button print-all-button" type="button" data-print-all-labels>Imprimir todas las etiquetas</button>
  @endif
