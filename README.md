@@ -81,6 +81,8 @@ php artisan migrate --force
 php artisan optimize
 ```
 
+El repositorio incluye `public/build` compilado para los hostings de producción que no ofrecen Node.js. En esos servidores se omiten `npm ci` y `npm run build`; esos comandos sólo son necesarios cuando se desea regenerar los recursos.
+
 Configuración mínima obligatoria:
 
 ```dotenv
