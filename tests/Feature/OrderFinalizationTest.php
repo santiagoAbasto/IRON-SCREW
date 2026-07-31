@@ -129,7 +129,8 @@ class OrderFinalizationTest extends TestCase
             ->get(route('orders.show', $order))
             ->assertOk()
             ->assertDontSee('quantity-mismatch', false)
-            ->assertSee('<strong>2</strong>', false);
+            ->assertSee('<strong>2</strong>', false)
+            ->assertSee('cajas fraccionadas');
     }
 
     public function test_stale_order_opens_from_local_data_and_refreshes_in_queue(): void

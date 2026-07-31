@@ -39,6 +39,11 @@
     $quantityMismatch = !$bulkMatches && !$fractionedMatches;
     $boxUnits = $bulkMatches ? $bulk : ($fractionedMatches ? $fractioned : ($bulk ?: $fractioned));
     $boxes = $boxUnits > 0 ? (int) ceil($quantity / $boxUnits) : 0;
+    $boxType = $bulkMatches
+        ? 'granel'
+        : ($fractionedMatches
+            ? ($boxes === 1 ? 'fraccionada' : 'fraccionadas')
+            : ($bulk > 0 ? 'granel parcial' : ($fractioned > 0 ? 'fraccionada parcial' : '')));
 @endphp
 <div class="tr"><span>{{ $item->code ?: 'S/C' }}</span><span>{{ $item->description }}</span><span class="{{ $quantityMismatch ? 'quantity-mismatch' : '' }}" @if($quantityMismatch) title="La cantidad pedida no coincide con una caja completa de granel ni de fraccionado" @endif>{{ number_format($quantity,0,',','.') }}</span>
  <span>@if($fractioned)<button class="packaging-link" type="button" onclick="document.querySelector('#packaging-dialog-{{ $item->id }}').showModal()">{{ number_format($fractioned,0,',','.') }}</button>@elseif($product)<a class="packaging-link missing" href="{{ route('settings.products',['q'=>$product->code]) }}" title="Configurar este producto">0</a>@else 0 @endif</span>
@@ -46,7 +51,7 @@
  <span class="box-total">
  @if(!$boxes) —
   @else
-   <strong>{{ $boxes }}</strong><small>{{ $boxes===1?'caja':'cajas' }}</small>
+   <strong>{{ $boxes }}</strong><small>{{ $boxes===1?'caja':'cajas' }} {{ $boxType }}</small>
   @endif
  </span><button class="printer" type="button" aria-label="Imprimir etiqueta" data-label-open="label-dialog-{{ $item->id }}"><img src="{{ asset('assets/figma/printer.svg') }}" alt=""></button></div>
 @if($product)
@@ -64,7 +69,7 @@
  </form>
 </dialog>
 @endif
-<dialog class="form-dialog label-dialog" id="label-dialog-{{ $item->id }}" data-label-dialog data-code="{{ $item->code }}" data-description="{{ $item->description }}" data-quantity="{{ $quantity }}" data-fractioned="{{ $fractioned }}" data-bulk="{{ $bulk }}" data-customer="{{ $order->customer }}" data-order="{{ $order->number }}" data-logo="{{ asset('assets/figma/label-logo-bw.jpg') }}">
+<dialog class="form-dialog label-dialog" id="label-dialog-{{ $item->id }}" data-label-dialog data-item-id="{{ $item->id }}" data-code="{{ $item->code }}" data-description="{{ $item->description }}" data-quantity="{{ $quantity }}" data-fractioned="{{ $fractioned }}" data-bulk="{{ $bulk }}" data-customer="{{ $order->customer }}" data-order="{{ $order->number }}" data-logo="{{ asset('assets/figma/label-logo-bw.jpg') }}">
  <button type="button" class="dialog-close" data-dialog-close>×</button><h2>Imprimir etiquetas</h2><p class="label-product"><strong>{{ $item->code }}</strong> · {{ $item->description }}</p>
  @if(!$fractioned||!$bulk)<div class="quantity-alert"><strong>Presentación pendiente de configurar.</strong><br>Podés indicar las unidades manualmente o completar el producto desde Configuración.</div>@endif
  <div class="label-summary"><span>Pedido <b>{{ number_format($quantity,0,',','.') }}</b></span><span>Fraccionado <b>{{ $fractioned?:'—' }}</b></span><span>Granel <b>{{ $bulk?:'—' }}</b></span></div>
