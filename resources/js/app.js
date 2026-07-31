@@ -51,10 +51,13 @@ document.querySelectorAll('[data-label-dialog]').forEach((dialog) => {
     restoreLabelAdjustment(dialog);
     dialog.querySelector('[data-label-type]')?.addEventListener('change', () => {
         markLabelAdjustmentDirty(dialog);
+        dialog.dataset.unitsManuallyEdited = 'false';
+        dialog.dataset.allowOverage = 'false';
         updateLabelCalculation(dialog, true);
     });
     dialog.querySelector('[data-units-per-label]')?.addEventListener('input', () => {
         markLabelAdjustmentDirty(dialog);
+        dialog.dataset.unitsManuallyEdited = 'true';
         updateLabelCalculation(dialog, true);
     });
     dialog.querySelector('[data-label-count]')?.addEventListener('input', () => {
@@ -106,12 +109,15 @@ function updateLabelCalculation(dialog, resetCount) {
     if (resetCount || !countInput.value) countInput.value = calculatedCount;
 
     const remainder = quantity % packagingUnits;
-    alert.hidden = exact;
+    const exceedsOrder = !standalone && units > quantity;
+    alert.hidden = exact && !exceedsOrder;
     const fullBoxes = Math.floor(quantity / packagingUnits);
     const partialDescription = fullBoxes > 0
         ? `${fullBoxes} ${fullBoxes === 1 ? 'caja completa' : 'cajas completas'} y 1 caja parcial de ${remainder.toLocaleString('es-AR')} unidades`
         : `1 caja parcial de ${remainder.toLocaleString('es-AR')} unidades`;
-    alert.innerHTML = exact
+    alert.innerHTML = exceedsOrder
+        ? `<strong>La etiqueta supera la cantidad pedida.</strong><br>La orden pide ${quantity.toLocaleString('es-AR')} unidades y se imprimirán ${units.toLocaleString('es-AR')}. Podés continuar si se completará la caja.`
+        : exact
         ? ''
         : fractioned
         ? `<strong>La cantidad pedida no es múltiplo de esta presentación fraccionada.</strong><br>Podés ajustar las unidades manualmente o imprimir la etiqueta igualmente.`
@@ -124,8 +130,7 @@ function updateLabelCalculation(dialog, resetCount) {
         : remainder
         ? `La presentación de ${packagingUnits.toLocaleString('es-AR')} no cierra con el pedido. Se proponen ${calculatedCount} etiquetas y la cantidad a imprimir puede ajustarse manualmente.`
         : `Se proponen ${calculatedCount} etiquetas de granel (${units.toLocaleString('es-AR')} unidades por etiqueta).`;
-    const previewUnits = standalone ? units : Math.min(units, quantity);
-    dialog.querySelector('[data-preview-units]').textContent = `${previewUnits.toLocaleString('es-AR')} UNIDADES`;
+    dialog.querySelector('[data-preview-units]').textContent = `${units.toLocaleString('es-AR')} UNIDADES`;
     dialog.querySelector('[data-preview-type]').textContent = type === 'bulk' ? 'GRANEL' : 'FRACCIONADO';
 }
 
@@ -146,6 +151,7 @@ function printLabels(dialog) {
     const quantity = Number(dialog.dataset.quantity);
     const type = dialog.querySelector('[data-label-type]').value;
     const standalone = dialog.dataset.standalone === 'true';
+    const allowOverage = dialog.dataset.unitsManuallyEdited === 'true' || dialog.dataset.allowOverage === 'true';
     const size = dialog.querySelector('[data-label-size]')?.value || '80x50';
     const area = document.querySelector('#label-print-area');
     if (!area) return;
@@ -154,6 +160,8 @@ function printLabels(dialog) {
         const assigned = standalone
             ? units
             : type === 'fractioned'
+            ? units
+            : allowOverage
             ? units
             : Math.max(0, Math.min(units, quantity - (index * units)));
         return labelMarkup(dialog.dataset, type, assigned, index + 1, count, standalone);
@@ -177,6 +185,7 @@ function printAllOrderLabels() {
         const selectedType = dialog.querySelector('[data-label-type]')?.value;
         const selectedUnits = Number(dialog.querySelector('[data-units-per-label]')?.value);
         const selectedCount = Number(dialog.querySelector('[data-label-count]')?.value);
+        const allowOverage = adjusted && dialog.dataset.allowOverage === 'true';
         const type = adjusted ? selectedType : recommendation.type;
         const units = adjusted && selectedUnits > 0 ? selectedUnits : recommendation.units;
         const count = adjusted && selectedCount > 0
@@ -185,7 +194,7 @@ function printAllOrderLabels() {
 
         return Array.from({ length: count }, (_, index) => {
             const assigned = type === 'bulk'
-                ? Math.max(0, Math.min(units, quantity - (index * units)))
+                ? (allowOverage ? units : Math.max(0, Math.min(units, quantity - (index * units))))
                 : (type === 'fractioned' ? units : quantity);
             return labelMarkup(dialog.dataset, type, assigned, index + 1, count, false);
         }).join('');
@@ -224,6 +233,8 @@ function setRecommendedLabelType(dialog) {
         ? Number(dialog.dataset.quantity)
         : recommendation.units;
     unitsInput.dataset.lastType = recommendation.type;
+    dialog.dataset.unitsManuallyEdited = 'false';
+    dialog.dataset.allowOverage = 'false';
 }
 
 function markLabelAdjustmentDirty(dialog) {
@@ -250,8 +261,14 @@ function saveLabelAdjustment(dialog) {
         return;
     }
 
-    const adjustment = { type, units, count: Math.floor(count) };
+    const adjustment = {
+        type,
+        units,
+        count: Math.floor(count),
+        allowOverage: dialog.dataset.unitsManuallyEdited === 'true',
+    };
     dialog.dataset.batchAdjusted = 'true';
+    dialog.dataset.allowOverage = String(adjustment.allowOverage);
     try {
         sessionStorage.setItem(labelAdjustmentKey(dialog), JSON.stringify(adjustment));
     } catch (_) {
@@ -278,6 +295,8 @@ function restoreLabelAdjustment(dialog) {
     dialog.querySelector('[data-label-count]').value = Math.floor(adjustment.count);
     dialog.querySelector('[data-units-per-label]').dataset.lastType = adjustment.type;
     dialog.dataset.batchAdjusted = 'true';
+    dialog.dataset.allowOverage = String(adjustment.allowOverage === true);
+    dialog.dataset.unitsManuallyEdited = String(adjustment.allowOverage === true);
     const button = dialog.querySelector('[data-save-label-adjustment]');
     if (button) button.textContent = '✓ Ajuste guardado';
     updateLabelCalculation(dialog, false);
