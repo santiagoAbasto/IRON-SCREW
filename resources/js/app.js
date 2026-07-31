@@ -261,7 +261,6 @@ function labelMarkup(data, type, assigned, position, total, standalone) {
         </div>
         <div class="thermal-brand">
             <img src="${escapeHtml(data.logo)}" alt="">
-            <div><strong>IRON<br>SCREW</strong><small>TORNILLOS AUTOPERFORANTES</small></div>
             <em>${typeLabel}${reference} · ${position}/${total}</em>
         </div>
     </article>`;

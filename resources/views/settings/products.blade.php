@@ -38,7 +38,7 @@
     @endif
    </span>
   </div>
-  <dialog class="form-dialog label-dialog" id="product-label-dialog-{{ $product->id }}" data-label-dialog data-standalone="true" data-code="{{ $product->code }}" data-description="{{ $product->description }}" data-quantity="0" data-fractioned="{{ (int)$product->units_fractioned }}" data-bulk="{{ (int)$product->units_bulk }}" data-customer="" data-order="" data-logo="{{ asset('assets/figma/label-logo.png') }}">
+  <dialog class="form-dialog label-dialog" id="product-label-dialog-{{ $product->id }}" data-label-dialog data-standalone="true" data-code="{{ $product->code }}" data-description="{{ $product->description }}" data-quantity="0" data-fractioned="{{ (int)$product->units_fractioned }}" data-bulk="{{ (int)$product->units_bulk }}" data-customer="" data-order="" data-logo="{{ asset('assets/figma/label-logo-bw.jpg') }}">
    <button type="button" class="dialog-close" data-dialog-close>×</button>
    <h2>Imprimir etiquetas de producto</h2>
    <p class="label-product"><strong>{{ $product->code }}</strong> · {{ $product->description }}</p>
@@ -46,7 +46,7 @@
    <div class="label-summary two"><span>Fraccionado <b>{{ $product->units_fractioned?:'—' }}</b></span><span>Granel <b>{{ $product->units_bulk?:'—' }}</b></span></div>
    <div class="form-grid"><label>Tipo de etiqueta<select data-label-type><option value="bulk">Granel</option><option value="fractioned">Fraccionado{{ $product->units_fractioned?' ('.number_format($product->units_fractioned,0,',','.').')':'' }}</option></select></label><label>Tamaño de etiqueta<select data-label-size><option value="80x50" selected>80 × 50 mm</option><option value="100x80">100 × 80 mm</option></select></label><label>Unidades por etiqueta<input type="number" min="1" placeholder="Ingresar unidades" data-units-per-label></label><label>Total de cajas / etiquetas<input type="number" min="1" value="1" data-label-count></label></div>
    <div class="quantity-alert" data-quantity-alert hidden></div><p class="label-help" data-label-help></p>
-   <div class="label-preview" data-label-preview><div class="thermal-label no-customer"><div class="thermal-product"><strong>{{ $product->description }}</strong><span>{{ $product->code }}</span><b data-preview-units>— UNIDADES</b></div><div class="thermal-brand"><img src="{{ asset('assets/figma/label-logo.png') }}" alt=""><div><strong>IRON<br>SCREW</strong><small>TORNILLOS AUTOPERFORANTES</small></div><em data-preview-type>GRANEL</em></div></div></div>
+   <div class="label-preview" data-label-preview><div class="thermal-label no-customer"><div class="thermal-product"><strong>{{ $product->description }}</strong><span>{{ $product->code }}</span><b data-preview-units>— UNIDADES</b></div><div class="thermal-brand"><img src="{{ asset('assets/figma/label-logo-bw.jpg') }}" alt="Iron Screw"><em data-preview-type>GRANEL</em></div></div></div>
    <button class="primary" type="button" data-print-labels>Imprimir etiquetas</button>
   </dialog>
   @if(in_array('products.manage',$ironUser->role?->permissions??[]))

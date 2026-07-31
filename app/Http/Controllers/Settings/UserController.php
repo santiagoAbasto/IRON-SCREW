@@ -22,7 +22,7 @@ class UserController extends Controller
             'name' => ['required', 'max:255'],
             'username' => ['required', 'max:100', 'unique:users,username'],
             'email' => ['required', 'email', 'unique:users,email'],
-            'password' => ['required', Password::min(12)->mixedCase()->numbers()],
+            'password' => ['required', Password::min(6)],
             'role_id' => ['nullable', 'exists:roles,id'],
             'is_active' => ['nullable', 'boolean'],
         ], [
@@ -33,9 +33,7 @@ class UserController extends Controller
             'email.email' => 'Ingresá un email válido.',
             'email.unique' => 'Ese email ya está registrado.',
             'password.required' => 'Ingresá una contraseña.',
-            'password.min' => 'La contraseña debe tener al menos 12 caracteres.',
-            'password.mixed' => 'La contraseña debe incluir mayúsculas y minúsculas.',
-            'password.numbers' => 'La contraseña debe incluir al menos un número.',
+            'password.min' => 'La contraseña debe tener al menos 6 caracteres.',
             'role_id.exists' => 'El rol seleccionado no es válido.',
         ]);
         $data['is_active'] = $request->boolean('is_active');
@@ -46,7 +44,7 @@ class UserController extends Controller
 
     public function update(Request $request, User $user)
     {
-        $data = $request->validate(['name' => 'required|max:255', 'username' => ['required', 'max:100', Rule::unique('users')->ignore($user)], 'email' => ['required', 'email', Rule::unique('users')->ignore($user)], 'password' => ['nullable', Password::min(12)->mixedCase()->numbers()], 'role_id' => 'nullable|exists:roles,id', 'is_active' => 'nullable|boolean']);
+        $data = $request->validate(['name' => 'required|max:255', 'username' => ['required', 'max:100', Rule::unique('users')->ignore($user)], 'email' => ['required', 'email', Rule::unique('users')->ignore($user)], 'password' => ['nullable', Password::min(6)], 'role_id' => 'nullable|exists:roles,id', 'is_active' => 'nullable|boolean']);
         if (empty($data['password'])) {
             unset($data['password']);
         } $data['is_active'] = $request->boolean('is_active');

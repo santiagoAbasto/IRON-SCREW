@@ -145,7 +145,7 @@ Agregá una sola entrada al cron:
 - El login limita intentos repetidos y regenera la sesión al autenticar.
 - Todas las acciones mutables usan `POST`, `PUT`, `PATCH` o `DELETE` con protección CSRF.
 - El cierre de sesión invalida la sesión y cancela procesos asociados.
-- Contraseñas nuevas: mínimo 12 caracteres, mayúsculas, minúsculas y números.
+- Contraseñas de usuarios: mínimo 6 caracteres.
 - Las rutas se protegen por sesión activa y permisos de rol.
 - Las respuestas incluyen encabezados contra framing, MIME sniffing y exposición innecesaria.
 - `.env`, claves, bases locales, logs, cachés, dependencias y archivos compilados no se versionan.

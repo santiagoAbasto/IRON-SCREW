@@ -7,7 +7,6 @@ var e=document.querySelector(`#app-sidebar`),t=document.querySelector(`[data-sid
         </div>
         <div class="thermal-brand">
             <img src="${h(e.logo)}" alt="">
-            <div><strong>IRON<br>SCREW</strong><small>TORNILLOS AUTOPERFORANTES</small></div>
             <em>${c}${s} · ${r}/${i}</em>
         </div>
     </article>`}function m(e,t=`80x50`){let n=t===`100x80`?`100x80`:`80x50`;document.documentElement.dataset.printLabelSize=n;let r=document.querySelector(`#label-page-size`);r||(r=document.createElement(`style`),r.id=`label-page-size`,document.head.appendChild(r)),r.textContent=n===`100x80`?`@page { size: 100mm 80mm; margin: 0; }`:`@page { size: 80mm 50mm; margin: 0; }`,window.print()}function h(e=``){let t=document.createElement(`span`);return t.textContent=e,t.innerHTML}

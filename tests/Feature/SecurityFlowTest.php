@@ -82,12 +82,25 @@ class SecurityFlowTest extends TestCase
                 'name' => 'Usuario Débil',
                 'username' => 'debil',
                 'email' => 'debil@example.com',
-                'password' => '123456',
+                'password' => '12345',
                 'role_id' => $role->id,
                 'is_active' => true,
             ])
             ->assertSessionHasErrorsIn('createUser', 'password');
 
         $this->assertDatabaseMissing('users', ['username' => 'debil']);
+
+        $this->withSession(['iron_user' => $admin->id])
+            ->post(route('settings.users.store'), [
+                'name' => 'Usuario Seis',
+                'username' => 'seis',
+                'email' => 'seis@example.com',
+                'password' => 'abc123',
+                'role_id' => $role->id,
+                'is_active' => true,
+            ])
+            ->assertSessionHasNoErrors();
+
+        $this->assertDatabaseHas('users', ['username' => 'seis']);
     }
 }
