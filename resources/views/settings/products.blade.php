@@ -33,7 +33,7 @@
  <div class="data-table product-table">
   <div class="thead"><span>CÓDIGO</span><span>DESCRIPCIÓN</span><span>UNIDADES X CAJA<br>FRACCIONADOS</span><span>UNIDADES X CAJA<br>GRANEL</span><span></span></div>
   @forelse($products as $product)
-  <div class="tr"><span>{{ $product->code }}</span><span>{{ $product->description }}</span><span>{{ $product->units_fractioned ?: '—' }}</span><span>{{ $product->units_bulk }}</span>
+  <div class="tr"><span>{{ $product->code }}</span><span>{{ $product->description }}</span><span>{{ $product->units_fractioned ?: '—' }}</span><span>{{ $product->units_bulk > 0 ? number_format($product->units_bulk,0,',','.') : 'A pedido' }}</span>
    <span class="action-buttons">
     <button class="printer" type="button" title="Imprimir etiquetas" aria-label="Imprimir etiquetas" data-label-open="product-label-dialog-{{ $product->id }}"><img src="{{ asset('assets/figma/printer.svg') }}" alt=""></button>
     @if(in_array('products.manage',$ironUser->role?->permissions??[]))
@@ -46,8 +46,8 @@
    <button type="button" class="dialog-close" data-dialog-close>×</button>
    <h2>Imprimir etiquetas de producto</h2>
    <p class="label-product"><strong>{{ $product->code }}</strong> · {{ $product->description }}</p>
-   @if(!$product->units_fractioned||!$product->units_bulk)<div class="quantity-alert"><strong>Presentación parcialmente configurada.</strong><br>Podés ingresar manualmente las unidades para esta impresión.</div>@endif
-   <div class="label-summary two"><span>Fraccionado <b>{{ $product->units_fractioned?:'—' }}</b></span><span>Granel <b>{{ $product->units_bulk?:'—' }}</b></span></div>
+   @if(!$product->units_bulk)<div class="quantity-alert"><strong>Producto configurado a pedido.</strong><br>En una orden, la etiqueta tomará automáticamente la cantidad solicitada por el cliente. Para imprimir desde Productos, ingresá las unidades manualmente.</div>@elseif(!$product->units_fractioned)<div class="quantity-alert"><strong>Presentación fraccionada sin configurar.</strong><br>Podés ingresar manualmente las unidades para esta impresión.</div>@endif
+   <div class="label-summary two"><span>Fraccionado <b>{{ $product->units_fractioned?:'—' }}</b></span><span>Granel <b>{{ $product->units_bulk > 0 ? number_format($product->units_bulk,0,',','.') : 'A pedido' }}</b></span></div>
    <div class="form-grid"><label>Tipo de etiqueta<select data-label-type><option value="bulk">Granel</option><option value="fractioned">Fraccionado{{ $product->units_fractioned?' ('.number_format($product->units_fractioned,0,',','.').')':'' }}</option></select></label><label>Tamaño de etiqueta<select data-label-size><option value="80x50" selected>80 × 50 mm</option><option value="100x80">100 × 80 mm</option></select></label><label>Unidades por etiqueta<input type="number" min="1" placeholder="Ingresar unidades" data-units-per-label></label><label>Total de cajas / etiquetas<input type="number" min="1" value="1" data-label-count></label></div>
    <div class="quantity-alert" data-quantity-alert hidden></div><p class="label-help" data-label-help></p>
    <div class="label-preview" data-label-preview><div class="thermal-label no-customer"><div class="thermal-product"><strong>{{ $product->description }}</strong><span>{{ $product->code }}</span><b data-preview-units>— UNIDADES</b></div><div class="thermal-brand"><img src="{{ asset('assets/figma/label-logo-bw.jpg') }}" alt="Iron Screw"><em data-preview-type>GRANEL</em></div></div></div>

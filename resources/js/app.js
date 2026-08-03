@@ -91,7 +91,9 @@ function updateLabelCalculation(dialog, resetCount, preserveEmptyCount = false) 
     const unitsInput = dialog.querySelector('[data-units-per-label]');
     const countInput = dialog.querySelector('[data-label-count]');
     const expectedUnits = Number(
-        type === 'bulk'
+        type === 'order'
+            ? quantity
+            : type === 'bulk'
             ? dialog.dataset.bulk
             : dialog.dataset.fractioned
     );
@@ -112,12 +114,12 @@ function updateLabelCalculation(dialog, resetCount, preserveEmptyCount = false) 
         alert.innerHTML = '<strong>Falta indicar las unidades para esta presentación.</strong><br>Ingresá manualmente las unidades por etiqueta para continuar.';
         dialog.querySelector('[data-label-help]').textContent = 'Esta cantidad todavía no está configurada. Podés escribirla solamente para esta impresión.';
         dialog.querySelector('[data-preview-units]').textContent = '— UNIDADES';
-        dialog.querySelector('[data-preview-type]').textContent = type === 'bulk' ? 'GRANEL' : 'FRACCIONADO';
+        dialog.querySelector('[data-preview-type]').textContent = type === 'order' ? 'PEDIDO' : (type === 'bulk' ? 'GRANEL' : 'FRACCIONADO');
         return;
     }
 
     const packagingUnits = expectedUnits > 0 ? expectedUnits : units;
-    const exact = standalone || quantity % packagingUnits === 0;
+    const exact = standalone || type === 'order' || quantity % packagingUnits === 0;
     const fractioned = type === 'fractioned';
     const calculatedCount = standalone ? 1 : Math.max(1, Math.ceil(quantity / units));
     if (resetCount || (!countInput.value && !preserveEmptyCount)) countInput.value = calculatedCount;
@@ -139,13 +141,15 @@ function updateLabelCalculation(dialog, resetCount, preserveEmptyCount = false) 
 
     dialog.querySelector('[data-label-help]').textContent = standalone
         ? 'Indicá cuántas cajas o etiquetas necesitás. Podés modificar tanto las unidades como el total antes de imprimir.'
+        : type === 'order'
+        ? `Se imprimirá 1 etiqueta con la cantidad exacta pedida: ${quantity.toLocaleString('es-AR')} unidades.`
         : fractioned
         ? `Se proponen ${calculatedCount} ${calculatedCount === 1 ? 'etiqueta fraccionada' : 'etiquetas fraccionadas'} de ${units.toLocaleString('es-AR')} unidades. Podés cambiar la cantidad manualmente.`
         : remainder
         ? `La presentación de ${packagingUnits.toLocaleString('es-AR')} no cierra con el pedido. Se proponen ${calculatedCount} etiquetas y la cantidad a imprimir puede ajustarse manualmente.`
         : `Se proponen ${calculatedCount} etiquetas de granel (${units.toLocaleString('es-AR')} unidades por etiqueta).`;
     dialog.querySelector('[data-preview-units]').textContent = `${units.toLocaleString('es-AR')} UNIDADES`;
-    dialog.querySelector('[data-preview-type]').textContent = type === 'bulk' ? 'GRANEL' : 'FRACCIONADO';
+    dialog.querySelector('[data-preview-type]').textContent = type === 'order' ? 'PEDIDO' : (type === 'bulk' ? 'GRANEL' : 'FRACCIONADO');
 }
 
 function printLabels(dialog) {
@@ -194,7 +198,7 @@ function printAllOrderLabels() {
         const quantity = Number(dialog.dataset.quantity);
         const bulk = Number(dialog.dataset.bulk);
         const fractioned = Number(dialog.dataset.fractioned);
-        const recommendation = recommendedPackaging(quantity, bulk, fractioned);
+        const recommendation = recommendedPackaging(quantity, bulk, fractioned, dialog.dataset.exactOrder === 'true');
         const adjusted = dialog.dataset.batchAdjusted === 'true';
         const selectedType = dialog.querySelector('[data-label-type]')?.value;
         const selectedUnits = Number(dialog.querySelector('[data-units-per-label]')?.value);
@@ -222,7 +226,8 @@ function labelAdjustmentKey(dialog) {
     return `iron-label-adjustment:${dialog.dataset.order || 'product'}:${dialog.dataset.itemId || dialog.dataset.code || 'unknown'}`;
 }
 
-function recommendedPackaging(quantity, bulk, fractioned) {
+function recommendedPackaging(quantity, bulk, fractioned, exactOrder = false) {
+    if (exactOrder && quantity > 0) return { type: 'order', units: quantity };
     const bulkExact = bulk > 0 && quantity % bulk === 0;
     const fractionedExact = fractioned > 0 && quantity % fractioned === 0;
     if (bulkExact) return { type: 'bulk', units: bulk };
@@ -238,6 +243,7 @@ function setRecommendedLabelType(dialog) {
         Number(dialog.dataset.quantity),
         Number(dialog.dataset.bulk),
         Number(dialog.dataset.fractioned),
+        dialog.dataset.exactOrder === 'true',
     );
     if (recommendation.type === 'unconfigured') return;
     const typeInput = dialog.querySelector('[data-label-type]');
@@ -303,8 +309,8 @@ function reflectLabelAdjustment(dialog, adjustment) {
 
     const count = Math.floor(Number(adjustment.count));
     const units = Number(adjustment.units);
-    const type = adjustment.type === 'bulk' ? 'granel' : 'fraccionada';
-    const typeLabel = count === 1 ? type : (type === 'granel' ? 'granel' : 'fraccionadas');
+    const type = adjustment.type === 'order' ? 'a pedido' : (adjustment.type === 'bulk' ? 'granel' : 'fraccionada');
+    const typeLabel = type === 'granel' || type === 'a pedido' ? type : (count === 1 ? type : 'fraccionadas');
     total.innerHTML = `<strong>${count.toLocaleString('es-AR')}</strong><small>${count === 1 ? 'caja' : 'cajas'} ${typeLabel}</small><em class="packaging-adjusted">Ajustado · ${units.toLocaleString('es-AR')} u</em>`;
     quantity?.classList.remove('quantity-review');
     quantity?.classList.add('quantity-adjusted');
@@ -319,7 +325,7 @@ function restoreLabelAdjustment(dialog) {
     } catch (_) {
         adjustment = null;
     }
-    if (!adjustment || !['bulk', 'fractioned'].includes(adjustment.type)) return;
+    if (!adjustment || !['bulk', 'fractioned', 'order'].includes(adjustment.type)) return;
     if (!(Number(adjustment.units) > 0) || !(Number(adjustment.count) > 0)) return;
 
     dialog.querySelector('[data-label-type]').value = adjustment.type;

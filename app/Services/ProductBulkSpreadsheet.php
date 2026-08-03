@@ -84,7 +84,7 @@ class ProductBulkSpreadsheet
                 continue;
             }
 
-            if (!$this->validQuantity($fractioned, $sourceFormat) || !$this->validQuantity($bulk, $sourceFormat)) {
+            if (!$this->validQuantity($fractioned, $sourceFormat) || !$this->validQuantity($bulk, true)) {
                 $invalid[] = $index + 2;
                 continue;
             }

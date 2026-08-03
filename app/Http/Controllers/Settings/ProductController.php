@@ -13,7 +13,7 @@ class ProductController extends Controller {
     }
     public function updatePackaging(Request $request, Product $product) {
         abort_if($product->contabilium_id===null,404);
-        $data=$request->validate(['units_fractioned'=>'nullable|integer|min:1','units_bulk'=>'required|integer|min:1']);
+        $data=$request->validate(['units_fractioned'=>'nullable|integer|min:1','units_bulk'=>'required|integer|min:0']);
         $data['units_fractioned']=$request->filled('units_fractioned')?(int)$data['units_fractioned']:0;
         $data['units_fractioned_x100']=0;
         $product->update($data);
@@ -51,7 +51,7 @@ class ProductController extends Controller {
             'code'=>['required','max:100',Rule::unique('products')->ignore($product)],
             'description'=>'required|max:255',
             'units_fractioned'=>'nullable|integer|min:1',
-            'units_bulk'=>'required|integer|min:1',
+            'units_bulk'=>'required|integer|min:0',
             'is_active'=>'nullable|boolean',
         ]);
         $data['units_fractioned']=$request->filled('units_fractioned')?(int)$data['units_fractioned']:0;

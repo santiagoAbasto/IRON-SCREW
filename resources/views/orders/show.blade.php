@@ -34,21 +34,24 @@
     $fractioned = (int) ($product?->units_fractioned ?? 0);
     $bulk = (int) ($product?->units_bulk ?? 0);
     $quantity = (float) $item->quantity;
+    $exactOrder = $product !== null && $bulk === 0;
     $bulkMatches = $bulk > 0 && abs(fmod($quantity, $bulk)) < 0.00001;
     $fractionedMatches = $fractioned > 0 && abs(fmod($quantity, $fractioned)) < 0.00001;
-    $quantityMismatch = !$bulkMatches && !$fractionedMatches;
-    $quantityReview = !$bulkMatches && $fractionedMatches && $fractioned > 0 && $quantity > $fractioned && $bulk > 0 && $quantity <= $bulk;
-    $boxUnits = $bulkMatches ? $bulk : ($fractionedMatches ? $fractioned : ($bulk ?: $fractioned));
+    $quantityMismatch = !$exactOrder && !$bulkMatches && !$fractionedMatches;
+    $quantityReview = !$exactOrder && !$bulkMatches && $fractionedMatches && $fractioned > 0 && $quantity > $fractioned && $bulk > 0 && $quantity <= $bulk;
+    $boxUnits = $exactOrder ? $quantity : ($bulkMatches ? $bulk : ($fractionedMatches ? $fractioned : ($bulk ?: $fractioned)));
     $boxes = $boxUnits > 0 ? (int) ceil($quantity / $boxUnits) : 0;
-    $boxType = $bulkMatches
+    $boxType = $exactOrder
+        ? 'a pedido'
+        : ($bulkMatches
         ? 'granel'
         : ($fractionedMatches
             ? ($boxes === 1 ? 'fraccionada' : 'fraccionadas')
-            : ($bulk > 0 ? 'granel parcial' : ($fractioned > 0 ? 'fraccionada parcial' : '')));
+            : ($bulk > 0 ? 'granel parcial' : ($fractioned > 0 ? 'fraccionada parcial' : ''))));
 @endphp
 <div class="tr" data-item-row="{{ $item->id }}"><span>{{ $item->code ?: 'S/C' }}</span><span>{{ $item->description }}</span><span data-item-quantity="{{ $item->id }}" class="{{ $quantityMismatch ? 'quantity-mismatch' : ($quantityReview ? 'quantity-review' : '') }}" @if($quantityMismatch) title="La cantidad pedida no coincide con una caja completa de granel ni de fraccionado" @elseif($quantityReview) title="Cierra con fraccionado, pero también cabe en una caja granel. Revisá la presentación." @endif>{{ number_format($quantity,0,',','.') }}</span>
  <span>@if($fractioned)<button class="packaging-link" type="button" onclick="document.querySelector('#packaging-dialog-{{ $item->id }}').showModal()">{{ number_format($fractioned,0,',','.') }}</button>@elseif($product)<a class="packaging-link missing" href="{{ route('settings.products',['q'=>$product->code]) }}" title="Configurar este producto">0</a>@else 0 @endif</span>
- <span>@if($bulk)<button class="packaging-link" type="button" onclick="document.querySelector('#packaging-dialog-{{ $item->id }}').showModal()">{{ number_format($bulk,0,',','.') }}</button>@elseif($product)<a class="packaging-link missing" href="{{ route('settings.products',['q'=>$product->code]) }}" title="Configurar este producto">0</a>@else 0 @endif</span>
+ <span>@if($bulk)<button class="packaging-link" type="button" onclick="document.querySelector('#packaging-dialog-{{ $item->id }}').showModal()">{{ number_format($bulk,0,',','.') }}</button>@elseif($exactOrder)<button class="packaging-link exact-order" type="button" onclick="document.querySelector('#packaging-dialog-{{ $item->id }}').showModal()" title="La etiqueta usa la cantidad exacta del pedido">A pedido</button>@elseif($product)<a class="packaging-link missing" href="{{ route('settings.products',['q'=>$product->code]) }}" title="Configurar este producto">0</a>@else 0 @endif</span>
  <span class="box-total" data-item-box-total="{{ $item->id }}">
  @if(!$boxes) —
   @else
@@ -64,18 +67,18 @@
   <p class="label-product"><strong>{{ $product->code }}</strong> · {{ $product->description }}</p>
   <div class="form-grid">
    <label>Unidades por caja fraccionado (opcional)<input type="number" min="1" name="units_fractioned" value="{{ $fractioned ?: '' }}" autofocus></label>
-   <label>Unidades por caja granel<input type="number" min="1" name="units_bulk" value="{{ $bulk ?: '' }}" required></label>
+   <label>Unidades por caja granel<input type="number" min="0" name="units_bulk" value="{{ $bulk }}" required><small>Usá 0 para tomar siempre la cantidad exacta pedida.</small></label>
   </div>
-  <p class="configuration-help">Granel es obligatorio. Fraccionado puede quedar vacío y completarse más adelante, incluso manualmente al preparar una impresión.</p>
+  <p class="configuration-help">Granel es obligatorio. Con 0, cada etiqueta toma la cantidad exacta del pedido. Fraccionado puede quedar vacío.</p>
   <button class="primary">Guardar presentación</button>
  </form>
 </dialog>
 @endif
-<dialog class="form-dialog label-dialog" id="label-dialog-{{ $item->id }}" data-label-dialog data-item-id="{{ $item->id }}" data-code="{{ $item->code }}" data-description="{{ $item->description }}" data-quantity="{{ $quantity }}" data-fractioned="{{ $fractioned }}" data-bulk="{{ $bulk }}" data-customer="{{ $order->customer }}" data-order="{{ $order->number }}" data-logo="{{ asset('assets/figma/label-logo-bw.jpg') }}">
+<dialog class="form-dialog label-dialog" id="label-dialog-{{ $item->id }}" data-label-dialog data-item-id="{{ $item->id }}" data-code="{{ $item->code }}" data-description="{{ $item->description }}" data-quantity="{{ $quantity }}" data-fractioned="{{ $fractioned }}" data-bulk="{{ $bulk }}" data-exact-order="{{ $exactOrder ? 'true' : 'false' }}" data-customer="{{ $order->customer }}" data-order="{{ $order->number }}" data-logo="{{ asset('assets/figma/label-logo-bw.jpg') }}">
  <button type="button" class="dialog-close" data-dialog-close>×</button><h2>Imprimir etiquetas</h2><p class="label-product"><strong>{{ $item->code }}</strong> · {{ $item->description }}</p>
- @if(!$fractioned||!$bulk)<div class="quantity-alert"><strong>Presentación pendiente de configurar.</strong><br>Podés indicar las unidades manualmente o completar el producto desde Configuración.</div>@endif
- <div class="label-summary"><span>Pedido <b>{{ number_format($quantity,0,',','.') }}</b></span><span>Fraccionado <b>{{ $fractioned?:'—' }}</b></span><span>Granel <b>{{ $bulk?:'—' }}</b></span></div>
- <div class="form-grid"><label>Tipo de etiqueta<select data-label-type><option value="bulk">Granel</option><option value="fractioned">Fraccionado{{ $fractioned?' ('.number_format($fractioned,0,',','.').')':'' }}</option></select></label><label>Tamaño de etiqueta<select data-label-size><option value="80x50" selected>80 × 50 mm</option><option value="100x80">100 × 80 mm</option></select></label><label>Cantidad a imprimir por etiqueta<input type="number" min="1" placeholder="Ingresar unidades" data-units-per-label></label><label>Total de cajas / etiquetas<input type="number" min="1" data-label-count></label></div>
+ @if(!$exactOrder&&(!$fractioned||!$bulk))<div class="quantity-alert"><strong>Presentación pendiente de configurar.</strong><br>Podés indicar las unidades manualmente o completar el producto desde Configuración.</div>@endif
+ <div class="label-summary"><span>Pedido <b>{{ number_format($quantity,0,',','.') }}</b></span><span>Fraccionado <b>{{ $fractioned?:'—' }}</b></span><span>Granel <b>{{ $exactOrder?'A pedido':($bulk?:'—') }}</b></span></div>
+ <div class="form-grid"><label>Tipo de etiqueta<select data-label-type>@if($exactOrder)<option value="order">Cantidad pedida</option>@endif<option value="bulk">Granel</option><option value="fractioned">Fraccionado{{ $fractioned?' ('.number_format($fractioned,0,',','.').')':'' }}</option></select></label><label>Tamaño de etiqueta<select data-label-size><option value="80x50" selected>80 × 50 mm</option><option value="100x80">100 × 80 mm</option></select></label><label>Cantidad a imprimir por etiqueta<input type="number" min="1" placeholder="Ingresar unidades" data-units-per-label></label><label>Total de cajas / etiquetas<input type="number" min="1" data-label-count></label></div>
  <div class="quantity-alert" data-quantity-alert hidden></div><p class="label-help" data-label-help></p>
  <div class="label-preview" data-label-preview><div class="thermal-label"><div class="thermal-customer">{{ strtoupper($order->customer) }}</div><div class="thermal-product"><strong>{{ $item->description }}</strong><span>{{ $item->code }}</span><b data-preview-units>— UNIDADES</b></div><div class="thermal-brand"><img src="{{ asset('assets/figma/label-logo-bw.jpg') }}" alt="Iron Screw"><em data-preview-type>GRANEL</em></div></div></div>
  <div class="label-dialog-actions"><button class="secondary-button" type="button" data-save-label-adjustment>Guardar ajuste</button><button class="primary" type="button" data-print-labels>Imprimir etiqueta</button></div>

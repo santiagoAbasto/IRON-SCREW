@@ -140,4 +140,22 @@ class SettingsManagementTest extends TestCase
         $this->assertDatabaseMissing('products',['id' => $product->id]);
         $this->assertFalse(Route::has('settings.products.store'));
     }
+
+    public function test_admin_can_set_zero_bulk_for_exact_order_labels(): void
+    {
+        $role = Role::create(['name' => 'Administrador', 'permissions' => ['settings.view', 'products.view', 'products.manage']]);
+        $admin = User::factory()->create(['role_id' => $role->id, 'is_active' => true]);
+        $product = Product::create(['contabilium_id' => 500, 'code' => 'EXACTO', 'description' => 'Producto exacto', 'units_fractioned' => 10, 'units_bulk' => 20, 'is_active' => true]);
+
+        $this->withSession(['iron_user' => $admin->id])
+            ->put(route('settings.products.packaging', $product), ['units_fractioned' => 10, 'units_bulk' => 0])
+            ->assertRedirect()
+            ->assertSessionHasNoErrors();
+
+        $this->assertSame(0, $product->fresh()->units_bulk);
+        $this->withSession(['iron_user' => $admin->id])
+            ->get(route('settings.products'))
+            ->assertOk()
+            ->assertSee('A pedido');
+    }
 }

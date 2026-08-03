@@ -166,6 +166,39 @@ class OrderFinalizationTest extends TestCase
             ->assertSee('caja fraccionada');
     }
 
+    public function test_zero_bulk_uses_the_exact_customer_order_quantity(): void
+    {
+        $role = Role::create(['name' => 'Consulta', 'permissions' => ['orders.view']]);
+        $user = User::factory()->create(['role_id' => $role->id, 'is_active' => true]);
+        $order = SalesOrder::create([
+            'contabilium_id' => 1200,
+            'number' => 'OV-A-PEDIDO',
+            'customer' => 'Cliente',
+            'status' => 'Pendiente',
+            'details_synced_at' => now(),
+        ]);
+        Product::create([
+            'contabilium_id' => 1200,
+            'code' => 'A-PEDIDO',
+            'description' => 'Producto por cantidad pedida',
+            'units_fractioned' => 500,
+            'units_bulk' => 0,
+            'is_active' => true,
+        ]);
+        $order->items()->create(['code' => 'A-PEDIDO', 'description' => 'Producto por cantidad pedida', 'quantity' => 1375]);
+
+        $this->withSession(['iron_user' => $user->id])
+            ->get(route('orders.show', $order))
+            ->assertOk()
+            ->assertDontSee('quantity-mismatch', false)
+            ->assertDontSee('quantity-review', false)
+            ->assertSee('A pedido')
+            ->assertSee('data-exact-order="true"', false)
+            ->assertSee('<option value="order">Cantidad pedida</option>', false)
+            ->assertSee('<strong>1</strong>', false)
+            ->assertSee('caja a pedido');
+    }
+
     public function test_stale_order_opens_from_local_data_and_refreshes_in_queue(): void
     {
         Queue::fake();
