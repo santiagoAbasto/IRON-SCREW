@@ -129,6 +129,9 @@ class OrderFinalizationTest extends TestCase
             ->get(route('orders.show', $order))
             ->assertOk()
             ->assertDontSee('quantity-mismatch', false)
+            ->assertSee('quantity-review', false)
+            ->assertSee('Revisar presentación')
+            ->assertSee('data-item-box-total', false)
             ->assertSee('<strong>2</strong>', false)
             ->assertSee('cajas fraccionadas');
     }

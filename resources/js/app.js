@@ -276,7 +276,25 @@ function saveLabelAdjustment(dialog) {
     }
     const button = dialog.querySelector('[data-save-label-adjustment]');
     if (button) button.textContent = '✓ Ajuste guardado';
+    reflectLabelAdjustment(dialog, adjustment);
     dialog.close();
+}
+
+function reflectLabelAdjustment(dialog, adjustment) {
+    const itemId = dialog.dataset.itemId;
+    if (!itemId) return;
+    const total = document.querySelector(`[data-item-box-total="${itemId}"]`);
+    const quantity = document.querySelector(`[data-item-quantity="${itemId}"]`);
+    if (!total) return;
+
+    const count = Math.floor(Number(adjustment.count));
+    const units = Number(adjustment.units);
+    const type = adjustment.type === 'bulk' ? 'granel' : 'fraccionada';
+    const typeLabel = count === 1 ? type : (type === 'granel' ? 'granel' : 'fraccionadas');
+    total.innerHTML = `<strong>${count.toLocaleString('es-AR')}</strong><small>${count === 1 ? 'caja' : 'cajas'} ${typeLabel}</small><em class="packaging-adjusted">Ajustado · ${units.toLocaleString('es-AR')} u</em>`;
+    quantity?.classList.remove('quantity-review');
+    quantity?.classList.add('quantity-adjusted');
+    if (quantity) quantity.title = `Presentación ajustada manualmente: ${count} ${count === 1 ? 'etiqueta' : 'etiquetas'} de ${units.toLocaleString('es-AR')} unidades`;
 }
 
 function restoreLabelAdjustment(dialog) {
@@ -300,6 +318,7 @@ function restoreLabelAdjustment(dialog) {
     const button = dialog.querySelector('[data-save-label-adjustment]');
     if (button) button.textContent = '✓ Ajuste guardado';
     updateLabelCalculation(dialog, false);
+    reflectLabelAdjustment(dialog, adjustment);
 }
 
 function labelMarkup(data, type, assigned, position, total, standalone) {

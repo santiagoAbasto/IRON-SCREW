@@ -37,6 +37,7 @@
     $bulkMatches = $bulk > 0 && abs(fmod($quantity, $bulk)) < 0.00001;
     $fractionedMatches = $fractioned > 0 && abs(fmod($quantity, $fractioned)) < 0.00001;
     $quantityMismatch = !$bulkMatches && !$fractionedMatches;
+    $quantityReview = !$bulkMatches && $fractionedMatches && $bulk > 0 && $quantity <= $bulk;
     $boxUnits = $bulkMatches ? $bulk : ($fractionedMatches ? $fractioned : ($bulk ?: $fractioned));
     $boxes = $boxUnits > 0 ? (int) ceil($quantity / $boxUnits) : 0;
     $boxType = $bulkMatches
@@ -45,13 +46,14 @@
             ? ($boxes === 1 ? 'fraccionada' : 'fraccionadas')
             : ($bulk > 0 ? 'granel parcial' : ($fractioned > 0 ? 'fraccionada parcial' : '')));
 @endphp
-<div class="tr"><span>{{ $item->code ?: 'S/C' }}</span><span>{{ $item->description }}</span><span class="{{ $quantityMismatch ? 'quantity-mismatch' : '' }}" @if($quantityMismatch) title="La cantidad pedida no coincide con una caja completa de granel ni de fraccionado" @endif>{{ number_format($quantity,0,',','.') }}</span>
+<div class="tr" data-item-row="{{ $item->id }}"><span>{{ $item->code ?: 'S/C' }}</span><span>{{ $item->description }}</span><span data-item-quantity="{{ $item->id }}" class="{{ $quantityMismatch ? 'quantity-mismatch' : ($quantityReview ? 'quantity-review' : '') }}" @if($quantityMismatch) title="La cantidad pedida no coincide con una caja completa de granel ni de fraccionado" @elseif($quantityReview) title="Cierra con fraccionado, pero también cabe en una caja granel. Revisá la presentación." @endif>{{ number_format($quantity,0,',','.') }}</span>
  <span>@if($fractioned)<button class="packaging-link" type="button" onclick="document.querySelector('#packaging-dialog-{{ $item->id }}').showModal()">{{ number_format($fractioned,0,',','.') }}</button>@elseif($product)<a class="packaging-link missing" href="{{ route('settings.products',['q'=>$product->code]) }}" title="Configurar este producto">0</a>@else 0 @endif</span>
  <span>@if($bulk)<button class="packaging-link" type="button" onclick="document.querySelector('#packaging-dialog-{{ $item->id }}').showModal()">{{ number_format($bulk,0,',','.') }}</button>@elseif($product)<a class="packaging-link missing" href="{{ route('settings.products',['q'=>$product->code]) }}" title="Configurar este producto">0</a>@else 0 @endif</span>
- <span class="box-total">
+ <span class="box-total" data-item-box-total="{{ $item->id }}">
  @if(!$boxes) —
   @else
    <strong>{{ $boxes }}</strong><small>{{ $boxes===1?'caja':'cajas' }} {{ $boxType }}</small>
+   @if($quantityReview)<em class="packaging-review">Revisar presentación</em>@endif
   @endif
  </span><button class="printer" type="button" aria-label="Imprimir etiqueta" data-label-open="label-dialog-{{ $item->id }}"><img src="{{ asset('assets/figma/printer.svg') }}" alt=""></button></div>
 @if($product)
