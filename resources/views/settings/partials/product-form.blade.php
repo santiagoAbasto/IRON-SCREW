@@ -4,6 +4,6 @@
  <label>Unidades x caja fraccionados (opcional)<input type="number" min="0" name="units_fractioned" value="{{ old('units_fractioned',$product->units_fractioned) }}"><small>Usá 0 si todavía no está definido.</small></label>
  <label>Unidades x caja graneles<input type="number" min="0" name="units_bulk" value="{{ old('units_bulk',$product->units_bulk) }}" required><small>Usá 0 si todavía no está definido.</small></label>
  <label class="check span-2"><input type="checkbox" name="label_exact_order" value="1" @checked(old('label_exact_order',$product->label_exact_order))> Imprimir siempre una etiqueta con la cantidad exacta pedida por el cliente</label>
- <p class="configuration-help span-2">Si ambos valores quedan en 0, esta modalidad se aplica automáticamente. Marcá la opción sólo para forzarla aunque existan cantidades de bulto.</p>
+ <p class="configuration-help span-2">Si Granel queda en 0, se usará automáticamente la cantidad pedida. Marcá la opción sólo para forzar esa modalidad aunque exista una cantidad granel.</p>
  <label class="check"><input type="checkbox" name="is_active" value="1" @checked(old('is_active',$product->is_active))> Producto activo</label>
 </div>

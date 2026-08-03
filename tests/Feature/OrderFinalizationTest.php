@@ -217,7 +217,7 @@ class OrderFinalizationTest extends TestCase
             ->assertSee('<option value="order">Cantidad pedida</option>', false);
     }
 
-    public function test_only_one_zero_package_remains_partially_undefined(): void
+    public function test_zero_bulk_uses_exact_order_even_when_fractioned_is_defined(): void
     {
         $role = Role::create(['name' => 'Consulta', 'permissions' => ['orders.view']]);
         $user = User::factory()->create(['role_id' => $role->id, 'is_active' => true]);
@@ -228,9 +228,9 @@ class OrderFinalizationTest extends TestCase
         $this->withSession(['iron_user' => $user->id])
             ->get(route('orders.show', $order))
             ->assertOk()
-            ->assertSee('quantity-mismatch', false)
-            ->assertSee('data-exact-order="false"', false)
-            ->assertDontSee('caja a pedido');
+            ->assertDontSee('quantity-mismatch', false)
+            ->assertSee('data-exact-order="true"', false)
+            ->assertSee('caja a pedido');
     }
 
     public function test_stale_order_opens_from_local_data_and_refreshes_in_queue(): void
