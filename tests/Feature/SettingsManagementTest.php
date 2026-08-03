@@ -45,7 +45,15 @@ class SettingsManagementTest extends TestCase
     {
         $role = Role::create(['name' => 'Consulta', 'permissions' => ['products.view']]);
         $user = User::factory()->create(['role_id' => $role->id, 'is_active' => true]);
-        $this->withSession(['iron_user' => $user->id])->get(route('settings.products'))->assertOk();
+        Product::create(['contabilium_id' => 99, 'code' => 'DEPOSITO-1', 'description' => 'Producto ingresante', 'units_fractioned' => 5, 'units_bulk' => 10, 'is_active' => true]);
+        $this->withSession(['iron_user' => $user->id])->get(route('settings.products'))
+            ->assertOk()
+            ->assertSee('Productos')
+            ->assertSee('Imprimir etiquetas')
+            ->assertSee(route('settings.products'), false)
+            ->assertDontSee('Editar producto')
+            ->assertDontSee('Subir Excel')
+            ->assertDontSee('import-products', false);
         $this->withSession(['iron_user' => $user->id])->get(route('settings.products.bulk-template'))->assertForbidden();
     }
 

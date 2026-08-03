@@ -1,6 +1,10 @@
 @extends('layouts.app')
 @section('content')
-<div class="back-title"><a href="{{ route('settings.index') }}">‹</a><h1>Gestión de productos</h1></div>
+<div class="back-title">
+ @if(in_array('settings.view',$ironUser->role?->permissions??[]))<a href="{{ route('settings.index') }}">‹</a>
+ @elseif(in_array('orders.view',$ironUser->role?->permissions??[]))<a href="{{ route('orders.index') }}">‹</a>@endif
+ <h1>{{ in_array('products.manage',$ironUser->role?->permissions??[]) ? 'Gestión de productos' : 'Productos' }}</h1>
+</div>
 @if(session('import_report'))
 @php($report=session('import_report'))
 <section class="import-report">
@@ -55,6 +59,7 @@
   @empty <div class="empty">No hay productos para mostrar.</div>@endforelse
  </div>
 </section>
+@if(in_array('products.manage',$ironUser->role?->permissions??[]))
 <dialog class="form-dialog import-dialog" id="import-products">
  <form method="post" action="{{ route('settings.products.bulk-import') }}" enctype="multipart/form-data">@csrf
   <button type="button" class="dialog-close" onclick="this.closest('dialog').close()">×</button>
@@ -64,5 +69,6 @@
   <button class="primary">Actualizar fraccionado y granel</button>
  </form>
 </dialog>
+@endif
 <section id="label-print-area" aria-hidden="true"></section>
 @endsection

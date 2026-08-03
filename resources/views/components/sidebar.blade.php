@@ -13,6 +13,10 @@
         <a class="{{ request()->routeIs('settings.*') ? 'active' : '' }}" href="{{ route('settings.index') }}">
             <img src="{{ asset('assets/figma/nav-settings.svg') }}" alt=""><span>Configuración</span>
         </a>
+        @elseif(in_array('products.view',$ironUser->role?->permissions??[]))
+        <a class="{{ request()->routeIs('settings.products*') ? 'active' : '' }}" href="{{ route('settings.products') }}">
+            <img src="{{ asset('assets/figma/settings-products.svg') }}" alt=""><span>Productos</span>
+        </a>
         @endif
     </nav>
 

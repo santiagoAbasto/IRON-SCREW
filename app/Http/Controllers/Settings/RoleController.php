@@ -6,7 +6,7 @@ use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
 class RoleController extends Controller {
-    public const PERMISSIONS=['orders.view'=>'Ver Órdenes de venta','orders.manage'=>'Gestionar Órdenes','users.manage'=>'Administrar Usuarios','roles.manage'=>'Administrar Roles y permisos','products.view'=>'Ver Productos','products.manage'=>'Administrar Productos','settings.view'=>'Ver Configuración'];
+    public const PERMISSIONS=['orders.view'=>'Ver Órdenes de venta','orders.manage'=>'Gestionar Órdenes','users.manage'=>'Administrar Usuarios','roles.manage'=>'Administrar Roles y permisos','products.view'=>'Ver Productos e imprimir etiquetas','products.manage'=>'Modificar e importar Productos','settings.view'=>'Ver Configuración'];
     public function index() { return view('settings.roles',['roles'=>Role::withCount('users')->orderBy('name')->get(),'availablePermissions'=>self::PERMISSIONS]); }
     public function store(Request $request) {
         $data=$request->validate(['name'=>'required|max:100|unique:roles','description'=>'nullable|max:255','permissions'=>'array','permissions.*'=>Rule::in(array_keys(self::PERMISSIONS))]); $data['permissions']=$data['permissions']??[]; Role::create($data); return back()->with('success','Rol creado correctamente.');
