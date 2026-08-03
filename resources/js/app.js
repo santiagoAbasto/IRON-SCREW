@@ -62,7 +62,7 @@ document.querySelectorAll('[data-label-dialog]').forEach((dialog) => {
     });
     dialog.querySelector('[data-label-count]')?.addEventListener('input', () => {
         markLabelAdjustmentDirty(dialog);
-        updateLabelCalculation(dialog, false);
+        updateLabelCalculation(dialog, false, true);
     });
     dialog.querySelector('[data-save-label-adjustment]')?.addEventListener('click', () => saveLabelAdjustment(dialog));
     dialog.querySelector('[data-print-labels]')?.addEventListener('click', () => printLabels(dialog));
@@ -70,7 +70,7 @@ document.querySelectorAll('[data-label-dialog]').forEach((dialog) => {
 
 document.querySelector('[data-print-all-labels]')?.addEventListener('click', printAllOrderLabels);
 
-function updateLabelCalculation(dialog, resetCount) {
+function updateLabelCalculation(dialog, resetCount, preserveEmptyCount = false) {
     const quantity = Number(dialog.dataset.quantity);
     const standalone = dialog.dataset.standalone === 'true';
     const type = dialog.querySelector('[data-label-type]').value;
@@ -82,7 +82,7 @@ function updateLabelCalculation(dialog, resetCount) {
             : dialog.dataset.fractioned
     );
 
-    if (!unitsInput.value || unitsInput.dataset.lastType !== type) {
+    if (unitsInput.dataset.lastType !== type) {
         const suggestedUnits = !standalone && quantity > 0 && expectedUnits > quantity
             ? quantity
             : expectedUnits;
@@ -106,7 +106,7 @@ function updateLabelCalculation(dialog, resetCount) {
     const exact = standalone || quantity % packagingUnits === 0;
     const fractioned = type === 'fractioned';
     const calculatedCount = standalone ? 1 : Math.max(1, Math.ceil(quantity / units));
-    if (resetCount || !countInput.value) countInput.value = calculatedCount;
+    if (resetCount || (!countInput.value && !preserveEmptyCount)) countInput.value = calculatedCount;
 
     const remainder = quantity % packagingUnits;
     const exceedsOrder = !standalone && units > quantity;
