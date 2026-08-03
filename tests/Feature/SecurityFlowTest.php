@@ -11,6 +11,15 @@ class SecurityFlowTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_login_password_can_be_revealed_without_exposing_it_by_default(): void
+    {
+        $this->get(route('login'))
+            ->assertOk()
+            ->assertSee('type="password"', false)
+            ->assertSee('data-password-toggle="login-password"', false)
+            ->assertSee('Mostrar');
+    }
+
     public function test_login_navigation_and_logout_flow(): void
     {
         $role = Role::create([

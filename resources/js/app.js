@@ -3,6 +3,20 @@ const backdrop = document.querySelector('[data-sidebar-backdrop]');
 const openButton = document.querySelector('[data-sidebar-open]');
 const closeButton = document.querySelector('[data-sidebar-close]');
 
+document.querySelectorAll('[data-password-toggle]').forEach((button) => {
+    button.addEventListener('click', () => {
+        const input = document.getElementById(button.dataset.passwordToggle);
+        if (!(input instanceof HTMLInputElement)) return;
+        const show = input.type === 'password';
+        input.type = show ? 'text' : 'password';
+        button.textContent = show ? 'Ocultar' : 'Mostrar';
+        button.setAttribute('aria-label', show ? 'Ocultar contraseña' : 'Mostrar contraseña');
+        button.setAttribute('aria-pressed', String(show));
+        input.focus({ preventScroll: true });
+        input.setSelectionRange(input.value.length, input.value.length);
+    });
+});
+
 const setSidebar = (open) => {
     if (!sidebar || !backdrop || !openButton) return;
     document.body.classList.toggle('sidebar-open', open);
