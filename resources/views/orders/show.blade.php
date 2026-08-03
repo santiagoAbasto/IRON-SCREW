@@ -35,7 +35,7 @@
     $bulk = (int) ($product?->units_bulk ?? 0);
     $quantity = (float) $item->quantity;
     $labelDescription = preg_replace('/(\d+)\s+[xX]\s+(\d+)/u', '$1 X $2', $item->description);
-    $exactOrder = (bool) ($product?->label_exact_order ?? false);
+    $exactOrder = $product !== null && ((bool) $product->label_exact_order || ($bulk === 0 && $fractioned === 0));
     $bulkMatches = $bulk > 0 && abs(fmod($quantity, $bulk)) < 0.00001;
     $fractionedMatches = $fractioned > 0 && abs(fmod($quantity, $fractioned)) < 0.00001;
     $quantityMismatch = !$exactOrder && !$bulkMatches && !$fractionedMatches;
@@ -71,7 +71,7 @@
    <label>Unidades por caja granel<input type="number" min="0" name="units_bulk" value="{{ $bulk }}" required><small>Usá 0 si todavía no está definido.</small></label>
    <label class="check span-2"><input type="checkbox" name="label_exact_order" value="1" @checked($exactOrder)> Imprimir siempre la cantidad exacta pedida</label>
   </div>
-  <p class="configuration-help">Los valores pueden quedar en 0 hasta definir los bultos. Activá la opción de cantidad exacta sólo para productos que siempre deban etiquetarse según el pedido.</p>
+  <p class="configuration-help">Si ambos valores quedan en 0, la etiqueta usará automáticamente la cantidad pedida. Activá la opción para forzar esa modalidad aunque existan bultos configurados.</p>
   <button class="primary">Guardar presentación</button>
  </form>
 </dialog>

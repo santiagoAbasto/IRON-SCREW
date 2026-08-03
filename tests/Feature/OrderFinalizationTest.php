@@ -200,13 +200,30 @@ class OrderFinalizationTest extends TestCase
             ->assertSee('caja a pedido');
     }
 
-    public function test_zero_packages_without_exact_order_mode_remain_undefined(): void
+    public function test_both_zero_packages_automatically_use_exact_order_quantity(): void
     {
         $role = Role::create(['name' => 'Consulta', 'permissions' => ['orders.view']]);
         $user = User::factory()->create(['role_id' => $role->id, 'is_active' => true]);
         $order = SalesOrder::create(['contabilium_id' => 1201, 'number' => 'OV-SIN-BULTOS', 'customer' => 'Cliente', 'status' => 'Pendiente', 'details_synced_at' => now()]);
         Product::create(['contabilium_id' => 1201, 'code' => 'SIN-BULTOS', 'description' => 'Producto sin bultos', 'units_fractioned' => 0, 'units_bulk' => 0, 'label_exact_order' => false, 'is_active' => true]);
         $order->items()->create(['code' => 'SIN-BULTOS', 'description' => 'Producto sin bultos', 'quantity' => 20]);
+
+        $this->withSession(['iron_user' => $user->id])
+            ->get(route('orders.show', $order))
+            ->assertOk()
+            ->assertDontSee('quantity-mismatch', false)
+            ->assertSee('data-exact-order="true"', false)
+            ->assertSee('caja a pedido')
+            ->assertSee('<option value="order">Cantidad pedida</option>', false);
+    }
+
+    public function test_only_one_zero_package_remains_partially_undefined(): void
+    {
+        $role = Role::create(['name' => 'Consulta', 'permissions' => ['orders.view']]);
+        $user = User::factory()->create(['role_id' => $role->id, 'is_active' => true]);
+        $order = SalesOrder::create(['contabilium_id' => 1202, 'number' => 'OV-PARCIAL', 'customer' => 'Cliente', 'status' => 'Pendiente', 'details_synced_at' => now()]);
+        Product::create(['contabilium_id' => 1202, 'code' => 'PARCIAL', 'description' => 'Producto parcial', 'units_fractioned' => 10, 'units_bulk' => 0, 'label_exact_order' => false, 'is_active' => true]);
+        $order->items()->create(['code' => 'PARCIAL', 'description' => 'Producto parcial', 'quantity' => 25]);
 
         $this->withSession(['iron_user' => $user->id])
             ->get(route('orders.show', $order))
