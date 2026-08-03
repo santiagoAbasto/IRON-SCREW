@@ -59,7 +59,7 @@ class OrderController extends Controller
         SyncContabiliumOrderDetailJob::dispatch($order->id, $request->session()->getId());
         $worker->start();
 
-        return back()->with('success', 'Actualización del detalle agregada a la cola.');
+        return back()->with('success', 'Actualización de artículos agregada a la cola. Al finalizar, podrás reimprimir las etiquetas con las cantidades nuevas.');
     }
 
     public function sync(Request $request, QueueWorkerLauncher $worker)

@@ -261,4 +261,35 @@ class OrderFinalizationTest extends TestCase
         );
         Process::assertRan(fn ($process) => str_contains((string) $process->command, 'queue:work --stop-when-empty'));
     }
+
+    public function test_finalized_order_can_refresh_articles_and_reprint(): void
+    {
+        Queue::fake();
+        Process::fake();
+        $role = Role::create(['name' => 'Consulta', 'permissions' => ['orders.view']]);
+        $user = User::factory()->create(['role_id' => $role->id, 'is_active' => true]);
+        $order = SalesOrder::create([
+            'contabilium_id' => 1400,
+            'number' => 'OV-FINALIZADA-REIMPRESION',
+            'customer' => 'Cliente',
+            'status' => 'Finalizado',
+            'locally_finalized_at' => now(),
+            'details_synced_at' => now(),
+        ]);
+        $order->items()->create(['code' => 'ITEM-1', 'description' => 'Producto', 'quantity' => 10]);
+
+        $this->withSession(['iron_user' => $user->id])
+            ->get(route('orders.show', $order))
+            ->assertOk()
+            ->assertSee('Actualizar artículos')
+            ->assertSee('Imprimir todas las etiquetas');
+
+        $this->withSession(['iron_user' => $user->id])
+            ->post(route('orders.refresh-detail', $order))
+            ->assertRedirect()
+            ->assertSessionHas('success');
+
+        $this->assertSame('Finalizado', $order->fresh()->status);
+        Queue::assertPushed(SyncContabiliumOrderDetailJob::class, fn ($job) => $job->orderId === $order->id);
+    }
 }

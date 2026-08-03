@@ -3,6 +3,7 @@
 @section('content')
 <div class="back-title order-detail-title"><a href="{{ route('orders.index') }}">‹</a><h1>{{ $order->number }}</h1>
  <div class="actions order-detail-actions">
+ <form method="post" action="{{ route('orders.refresh-detail',$order) }}">@csrf<button class="secondary-button" type="submit">↻ Actualizar artículos</button></form>
  @if($order->items->isNotEmpty())
  <label class="print-size-control">Tamaño<select data-print-all-size><option value="80x50" selected>80 × 50 mm</option><option value="100x80">100 × 80 mm</option></select></label>
  <button class="secondary-button print-all-button" type="button" data-print-all-labels>Imprimir todas las etiquetas</button>
