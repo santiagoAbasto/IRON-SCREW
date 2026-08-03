@@ -13,9 +13,10 @@ class ProductController extends Controller {
     }
     public function updatePackaging(Request $request, Product $product) {
         abort_if($product->contabilium_id===null,404);
-        $data=$request->validate(['units_fractioned'=>'nullable|integer|min:1','units_bulk'=>'required|integer|min:0']);
+        $data=$request->validate(['units_fractioned'=>'nullable|integer|min:0','units_bulk'=>'required|integer|min:0','label_exact_order'=>'nullable|boolean']);
         $data['units_fractioned']=$request->filled('units_fractioned')?(int)$data['units_fractioned']:0;
         $data['units_fractioned_x100']=0;
+        $data['label_exact_order']=$request->boolean('label_exact_order');
         $product->update($data);
         return back()->with('success',"Presentación de {$product->code} configurada correctamente.");
     }
@@ -50,12 +51,14 @@ class ProductController extends Controller {
         $data=$request->validate([
             'code'=>['required','max:100',Rule::unique('products')->ignore($product)],
             'description'=>'required|max:255',
-            'units_fractioned'=>'nullable|integer|min:1',
+            'units_fractioned'=>'nullable|integer|min:0',
             'units_bulk'=>'required|integer|min:0',
+            'label_exact_order'=>'nullable|boolean',
             'is_active'=>'nullable|boolean',
         ]);
         $data['units_fractioned']=$request->filled('units_fractioned')?(int)$data['units_fractioned']:0;
         $data['units_fractioned_x100']=0;
+        $data['label_exact_order']=$request->boolean('label_exact_order');
         $data['is_active']=$request->boolean('is_active');
         return $data;
     }

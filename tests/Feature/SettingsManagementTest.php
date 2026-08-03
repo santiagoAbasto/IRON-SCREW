@@ -148,11 +148,13 @@ class SettingsManagementTest extends TestCase
         $product = Product::create(['contabilium_id' => 500, 'code' => 'EXACTO', 'description' => 'Producto exacto', 'units_fractioned' => 10, 'units_bulk' => 20, 'is_active' => true]);
 
         $this->withSession(['iron_user' => $admin->id])
-            ->put(route('settings.products.packaging', $product), ['units_fractioned' => 10, 'units_bulk' => 0])
+            ->put(route('settings.products.packaging', $product), ['units_fractioned' => 0, 'units_bulk' => 0, 'label_exact_order' => 1])
             ->assertRedirect()
             ->assertSessionHasNoErrors();
 
         $this->assertSame(0, $product->fresh()->units_bulk);
+        $this->assertSame(0, $product->fresh()->units_fractioned);
+        $this->assertTrue($product->fresh()->label_exact_order);
         $this->withSession(['iron_user' => $admin->id])
             ->get(route('settings.products'))
             ->assertOk()

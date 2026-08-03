@@ -349,7 +349,7 @@ function labelMarkup(data, type, assigned, position, total, standalone) {
     return `<article class="printed-label">
         ${customer}
         <div class="thermal-product">
-            <strong>${escapeHtml(data.description)}</strong>
+            <strong>${formatLabelDescription(data.description)}</strong>
             <span>${escapeHtml(data.code)}</span>
             <b>${assigned.toLocaleString('es-AR')} UNIDADES</b>
         </div>
@@ -383,4 +383,8 @@ function escapeHtml(value = '') {
     const element = document.createElement('span');
     element.textContent = value;
     return element.innerHTML;
+}
+
+function formatLabelDescription(value = '') {
+    return escapeHtml(value).replace(/(\d+)\s+[xX]\s+(\d+)/g, '$1&nbsp;X&nbsp;$2');
 }

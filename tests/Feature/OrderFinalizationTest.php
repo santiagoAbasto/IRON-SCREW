@@ -183,6 +183,7 @@ class OrderFinalizationTest extends TestCase
             'description' => 'Producto por cantidad pedida',
             'units_fractioned' => 500,
             'units_bulk' => 0,
+            'label_exact_order' => true,
             'is_active' => true,
         ]);
         $order->items()->create(['code' => 'A-PEDIDO', 'description' => 'Producto por cantidad pedida', 'quantity' => 1375]);
@@ -197,6 +198,22 @@ class OrderFinalizationTest extends TestCase
             ->assertSee('<option value="order">Cantidad pedida</option>', false)
             ->assertSee('<strong>1</strong>', false)
             ->assertSee('caja a pedido');
+    }
+
+    public function test_zero_packages_without_exact_order_mode_remain_undefined(): void
+    {
+        $role = Role::create(['name' => 'Consulta', 'permissions' => ['orders.view']]);
+        $user = User::factory()->create(['role_id' => $role->id, 'is_active' => true]);
+        $order = SalesOrder::create(['contabilium_id' => 1201, 'number' => 'OV-SIN-BULTOS', 'customer' => 'Cliente', 'status' => 'Pendiente', 'details_synced_at' => now()]);
+        Product::create(['contabilium_id' => 1201, 'code' => 'SIN-BULTOS', 'description' => 'Producto sin bultos', 'units_fractioned' => 0, 'units_bulk' => 0, 'label_exact_order' => false, 'is_active' => true]);
+        $order->items()->create(['code' => 'SIN-BULTOS', 'description' => 'Producto sin bultos', 'quantity' => 20]);
+
+        $this->withSession(['iron_user' => $user->id])
+            ->get(route('orders.show', $order))
+            ->assertOk()
+            ->assertSee('quantity-mismatch', false)
+            ->assertSee('data-exact-order="false"', false)
+            ->assertDontSee('caja a pedido');
     }
 
     public function test_stale_order_opens_from_local_data_and_refreshes_in_queue(): void

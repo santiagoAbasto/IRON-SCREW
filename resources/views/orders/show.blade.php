@@ -34,7 +34,8 @@
     $fractioned = (int) ($product?->units_fractioned ?? 0);
     $bulk = (int) ($product?->units_bulk ?? 0);
     $quantity = (float) $item->quantity;
-    $exactOrder = $product !== null && $bulk === 0;
+    $labelDescription = preg_replace('/(\d+)\s+[xX]\s+(\d+)/u', '$1 X $2', $item->description);
+    $exactOrder = (bool) ($product?->label_exact_order ?? false);
     $bulkMatches = $bulk > 0 && abs(fmod($quantity, $bulk)) < 0.00001;
     $fractionedMatches = $fractioned > 0 && abs(fmod($quantity, $fractioned)) < 0.00001;
     $quantityMismatch = !$exactOrder && !$bulkMatches && !$fractionedMatches;
@@ -66,10 +67,11 @@
   <h2>Configurar presentación</h2>
   <p class="label-product"><strong>{{ $product->code }}</strong> · {{ $product->description }}</p>
   <div class="form-grid">
-   <label>Unidades por caja fraccionado (opcional)<input type="number" min="1" name="units_fractioned" value="{{ $fractioned ?: '' }}" autofocus></label>
-   <label>Unidades por caja granel<input type="number" min="0" name="units_bulk" value="{{ $bulk }}" required><small>Usá 0 para tomar siempre la cantidad exacta pedida.</small></label>
+   <label>Unidades por caja fraccionado (opcional)<input type="number" min="0" name="units_fractioned" value="{{ $fractioned }}" autofocus><small>Usá 0 si todavía no está definido.</small></label>
+   <label>Unidades por caja granel<input type="number" min="0" name="units_bulk" value="{{ $bulk }}" required><small>Usá 0 si todavía no está definido.</small></label>
+   <label class="check span-2"><input type="checkbox" name="label_exact_order" value="1" @checked($exactOrder)> Imprimir siempre la cantidad exacta pedida</label>
   </div>
-  <p class="configuration-help">Granel es obligatorio. Con 0, cada etiqueta toma la cantidad exacta del pedido. Fraccionado puede quedar vacío.</p>
+  <p class="configuration-help">Los valores pueden quedar en 0 hasta definir los bultos. Activá la opción de cantidad exacta sólo para productos que siempre deban etiquetarse según el pedido.</p>
   <button class="primary">Guardar presentación</button>
  </form>
 </dialog>
@@ -80,7 +82,7 @@
  <div class="label-summary"><span>Pedido <b>{{ number_format($quantity,0,',','.') }}</b></span><span>Fraccionado <b>{{ $fractioned?:'—' }}</b></span><span>Granel <b>{{ $exactOrder?'A pedido':($bulk?:'—') }}</b></span></div>
  <div class="form-grid"><label>Tipo de etiqueta<select data-label-type>@if($exactOrder)<option value="order">Cantidad pedida</option>@endif<option value="bulk">Granel</option><option value="fractioned">Fraccionado{{ $fractioned?' ('.number_format($fractioned,0,',','.').')':'' }}</option></select></label><label>Tamaño de etiqueta<select data-label-size><option value="80x50" selected>80 × 50 mm</option><option value="100x80">100 × 80 mm</option></select></label><label>Cantidad a imprimir por etiqueta<input type="number" min="1" placeholder="Ingresar unidades" data-units-per-label></label><label>Total de cajas / etiquetas<input type="number" min="1" data-label-count></label></div>
  <div class="quantity-alert" data-quantity-alert hidden></div><p class="label-help" data-label-help></p>
- <div class="label-preview" data-label-preview><div class="thermal-label"><div class="thermal-customer">{{ strtoupper($order->customer) }}</div><div class="thermal-product"><strong>{{ $item->description }}</strong><span>{{ $item->code }}</span><b data-preview-units>— UNIDADES</b></div><div class="thermal-brand"><img src="{{ asset('assets/figma/label-logo-bw.jpg') }}" alt="Iron Screw"><em data-preview-type>GRANEL</em></div></div></div>
+ <div class="label-preview" data-label-preview><div class="thermal-label"><div class="thermal-customer">{{ strtoupper($order->customer) }}</div><div class="thermal-product"><strong>{{ $labelDescription }}</strong><span>{{ $item->code }}</span><b data-preview-units>— UNIDADES</b></div><div class="thermal-brand"><img src="{{ asset('assets/figma/label-logo-bw.jpg') }}" alt="Iron Screw"><em data-preview-type>GRANEL</em></div></div></div>
  <div class="label-dialog-actions"><button class="secondary-button" type="button" data-save-label-adjustment>Guardar ajuste</button><button class="primary" type="button" data-print-labels>Imprimir etiqueta</button></div>
 </dialog>
 @empty
