@@ -17,7 +17,7 @@ class SecurityFlowTest extends TestCase
             ->assertOk()
             ->assertSee('type="password"', false)
             ->assertSee('data-password-toggle="login-password"', false)
-            ->assertSee('Mostrar');
+            ->assertSee('aria-label="Mostrar contraseña"', false);
     }
 
     public function test_login_navigation_and_logout_flow(): void

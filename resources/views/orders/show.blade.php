@@ -37,7 +37,7 @@
     $bulkMatches = $bulk > 0 && abs(fmod($quantity, $bulk)) < 0.00001;
     $fractionedMatches = $fractioned > 0 && abs(fmod($quantity, $fractioned)) < 0.00001;
     $quantityMismatch = !$bulkMatches && !$fractionedMatches;
-    $quantityReview = !$bulkMatches && $fractionedMatches && $bulk > 0 && $quantity <= $bulk;
+    $quantityReview = !$bulkMatches && $fractionedMatches && $fractioned > 0 && $quantity > $fractioned && $bulk > 0 && $quantity <= $bulk;
     $boxUnits = $bulkMatches ? $bulk : ($fractionedMatches ? $fractioned : ($bulk ?: $fractioned));
     $boxes = $boxUnits > 0 ? (int) ceil($quantity / $boxUnits) : 0;
     $boxType = $bulkMatches

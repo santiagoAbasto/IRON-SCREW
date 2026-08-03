@@ -9,8 +9,8 @@ document.querySelectorAll('[data-password-toggle]').forEach((button) => {
         if (!(input instanceof HTMLInputElement)) return;
         const show = input.type === 'password';
         input.type = show ? 'text' : 'password';
-        button.textContent = show ? 'Ocultar' : 'Mostrar';
         button.setAttribute('aria-label', show ? 'Ocultar contraseña' : 'Mostrar contraseña');
+        button.setAttribute('title', show ? 'Ocultar contraseña' : 'Mostrar contraseña');
         button.setAttribute('aria-pressed', String(show));
         input.focus({ preventScroll: true });
         input.setSelectionRange(input.value.length, input.value.length);

@@ -136,6 +136,36 @@ class OrderFinalizationTest extends TestCase
             ->assertSee('cajas fraccionadas');
     }
 
+    public function test_one_exact_fractioned_box_does_not_request_packaging_review(): void
+    {
+        $role = Role::create(['name' => 'Consulta', 'permissions' => ['orders.view']]);
+        $user = User::factory()->create(['role_id' => $role->id, 'is_active' => true]);
+        $order = SalesOrder::create([
+            'contabilium_id' => 1136,
+            'number' => 'OV-1136',
+            'customer' => 'Cliente',
+            'status' => 'Pendiente',
+            'details_synced_at' => now(),
+        ]);
+        Product::create([
+            'contabilium_id' => 1136,
+            'code' => 'DISCO-25',
+            'description' => 'Disco de corte',
+            'units_fractioned' => 25,
+            'units_bulk' => 400,
+            'is_active' => true,
+        ]);
+        $order->items()->create(['code' => 'DISCO-25', 'description' => 'Disco de corte', 'quantity' => 25]);
+
+        $this->withSession(['iron_user' => $user->id])
+            ->get(route('orders.show', $order))
+            ->assertOk()
+            ->assertDontSee('quantity-review', false)
+            ->assertDontSee('Revisar presentación')
+            ->assertSee('<strong>1</strong>', false)
+            ->assertSee('caja fraccionada');
+    }
+
     public function test_stale_order_opens_from_local_data_and_refreshes_in_queue(): void
     {
         Queue::fake();
