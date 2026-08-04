@@ -6,7 +6,6 @@ use App\Jobs\SyncContabiliumJob;
 use App\Jobs\SyncContabiliumOrderDetailJob;
 use App\Models\Product;
 use App\Models\SalesOrder;
-use App\Models\SalesOrderItem;
 use App\Services\QueueWorkerLauncher;
 use Illuminate\Http\Request;
 
@@ -71,18 +70,39 @@ class OrderController extends Controller
         return back()->with('success', 'Sincronización agregada a la cola. Podés seguir usando el sistema o cerrar sesión.');
     }
 
-    public function saveLabelAdjustment(Request $request, SalesOrder $order, SalesOrderItem $item)
+    public function saveLabelAdjustment(Request $request, SalesOrder $order, string $item)
     {
         $this->ensureOrderIsVisible($order);
-        abort_unless($item->sales_order_id === $order->id, 404);
         $data = $request->validate([
             'type' => ['required', 'in:bulk,fractioned,order'],
             'units' => ['required', 'numeric', 'min:1'],
             'count' => ['required', 'integer', 'min:1'],
             'allow_overage' => ['nullable', 'boolean'],
+            'concept_id' => ['nullable', 'integer'],
+            'code' => ['nullable', 'string', 'max:255'],
+            'description' => ['nullable', 'string'],
+            'line_index' => ['nullable', 'integer', 'min:0'],
         ]);
+        $orderItem = $order->items()->find($item);
+        if (!$orderItem && !empty($data['concept_id'])) {
+            $orderItem = $order->items()
+                ->where('contabilium_concept_id', $data['concept_id'])
+                ->when(!empty($data['code']), fn ($query) => $query->where('code', $data['code']))
+                ->when(!empty($data['description']), fn ($query) => $query->where('description', $data['description']))
+                ->first();
+        }
+        if (!$orderItem && !empty($data['code'])) {
+            $orderItem = $order->items()
+                ->where('code', $data['code'])
+                ->when(!empty($data['description']), fn ($query) => $query->where('description', $data['description']))
+                ->first();
+        }
+        if (!$orderItem && isset($data['line_index'])) {
+            $orderItem = $order->items()->orderBy('id')->skip($data['line_index'])->first();
+        }
+        abort_unless($orderItem, 404, 'El artículo ya no existe en esta orden. Actualizá la página.');
         $user = $request->attributes->get('ironUser');
-        $item->update([
+        $orderItem->update([
             'label_type' => $data['type'],
             'label_units' => $data['units'],
             'label_count' => $data['count'],
@@ -93,10 +113,10 @@ class OrderController extends Controller
 
         return response()->json([
             'adjustment' => [
-                'type' => $item->label_type,
-                'units' => (float) $item->label_units,
-                'count' => $item->label_count,
-                'allowOverage' => $item->label_allow_overage,
+                'type' => $orderItem->label_type,
+                'units' => (float) $orderItem->label_units,
+                'count' => $orderItem->label_count,
+                'allowOverage' => $orderItem->label_allow_overage,
                 'adjustedBy' => $user->name,
             ],
         ]);

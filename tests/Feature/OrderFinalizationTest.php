@@ -195,7 +195,7 @@ class OrderFinalizationTest extends TestCase
             ->assertDontSee('quantity-review', false)
             ->assertSee('A pedido')
             ->assertSee('data-exact-order="true"', false)
-            ->assertSee('<option value="order">Cantidad pedida</option>', false)
+            ->assertSee('<option value="order">Pedido (cantidad exacta)</option>', false)
             ->assertSee('<strong>1</strong>', false)
             ->assertSee('caja a pedido');
     }
@@ -214,7 +214,7 @@ class OrderFinalizationTest extends TestCase
             ->assertDontSee('quantity-mismatch', false)
             ->assertSee('data-exact-order="true"', false)
             ->assertSee('caja a pedido')
-            ->assertSee('<option value="order">Cantidad pedida</option>', false);
+            ->assertSee('<option value="order">Pedido (cantidad exacta)</option>', false);
     }
 
     public function test_zero_bulk_uses_exact_order_even_when_fractioned_is_defined(): void
@@ -334,5 +334,47 @@ class OrderFinalizationTest extends TestCase
             ->assertSee('Ajustado · 60 u')
             ->assertSee('Operador Depósito')
             ->assertSee('data-saved-adjustment', false);
+    }
+
+    public function test_label_adjustment_recovers_when_background_sync_replaced_the_item(): void
+    {
+        $role = Role::create(['name' => 'Depósito', 'permissions' => ['orders.view']]);
+        $operator = User::factory()->create(['role_id' => $role->id, 'is_active' => true]);
+        $order = SalesOrder::create(['contabilium_id' => 1600, 'number' => 'OV-REEMPLAZADA', 'customer' => 'Cliente', 'status' => 'Pendiente']);
+        $staleItem = $order->items()->create([
+            'contabilium_concept_id' => 9001,
+            'code' => 'SYNC-1',
+            'description' => 'Artículo sincronizado',
+            'quantity' => 8000,
+        ]);
+        $staleId = $staleItem->id;
+        $staleItem->delete();
+        $currentItem = $order->items()->create([
+            'contabilium_concept_id' => 9001,
+            'code' => 'SYNC-1',
+            'description' => 'Artículo sincronizado',
+            'quantity' => 8000,
+        ]);
+
+        $this->withSession(['iron_user' => $operator->id])
+            ->putJson(route('orders.items.label-adjustment', [$order, $staleId]), [
+                'type' => 'order',
+                'units' => 8000,
+                'count' => 1,
+                'allow_overage' => false,
+                'concept_id' => 9001,
+                'code' => 'SYNC-1',
+                'description' => 'Artículo sincronizado',
+                'line_index' => 0,
+            ])
+            ->assertOk()
+            ->assertJsonPath('adjustment.type', 'order');
+
+        $this->assertDatabaseHas('sales_order_items', [
+            'id' => $currentItem->id,
+            'label_type' => 'order',
+            'label_units' => 8000,
+            'label_count' => 1,
+        ]);
     }
 }

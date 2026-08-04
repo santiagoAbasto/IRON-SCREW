@@ -310,7 +310,7 @@ async function saveLabelAdjustment(dialog) {
     }
     if (dialog.dataset.saveUrl) {
         try {
-            const response = await saveSharedAdjustmentWithRetry(dialog.dataset.saveUrl, adjustment, button);
+            const response = await saveSharedAdjustmentWithRetry(dialog, adjustment, button);
             if (response.redirected || !response.headers.get('content-type')?.includes('application/json')) {
                 throw new Error('La sesión venció. Actualizá la página e iniciá sesión nuevamente.');
             }
@@ -345,14 +345,14 @@ async function saveLabelAdjustment(dialog) {
     dialog.close();
 }
 
-async function saveSharedAdjustmentWithRetry(url, adjustment, button) {
+async function saveSharedAdjustmentWithRetry(dialog, adjustment, button) {
     const retryableStatuses = new Set([408, 425, 429]);
     let lastError;
 
     for (let attempt = 1; attempt <= 3; attempt += 1) {
         if (button) button.textContent = attempt === 1 ? 'Guardando...' : `Reintentando (${attempt}/3)...`;
         try {
-            const response = await fetch(url, {
+            const response = await fetch(dialog.dataset.saveUrl, {
                 method: 'PUT',
                 credentials: 'same-origin',
                 headers: {
@@ -366,6 +366,10 @@ async function saveSharedAdjustmentWithRetry(url, adjustment, button) {
                     units: adjustment.units,
                     count: adjustment.count,
                     allow_overage: adjustment.allowOverage,
+                    concept_id: dialog.dataset.conceptId || null,
+                    code: dialog.dataset.code || null,
+                    description: dialog.dataset.description || null,
+                    line_index: Number(dialog.dataset.lineIndex),
                 }),
             });
 
