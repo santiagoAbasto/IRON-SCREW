@@ -443,11 +443,16 @@ function labelMarkup(data, type, assigned, position, total, standalone) {
     const customer = standalone ? '' : `<div class="thermal-customer${customerFitClass}">${escapeHtml(customerName)}</div>`;
     const reference = standalone ? '' : ` · OV ${escapeHtml(data.order)}`;
     const typeLabel = type === 'bulk' ? 'GRANEL' : (type === 'fractioned' ? 'FRACCIONADO' : 'PEDIDO');
+    const description = formatLabelDescription(data.description);
+    const descriptionLength = Array.from(String(data.description || '').trim()).length;
+    const descriptionFitClass = descriptionLength > 58
+        ? ' description-extra-long'
+        : (descriptionLength > 40 ? ' description-long' : '');
 
     return `<article class="printed-label">
         ${customer}
-        <div class="thermal-product">
-            <strong>${formatLabelDescription(data.description)}</strong>
+        <div class="thermal-product${descriptionFitClass}">
+            <strong>${description}</strong>
             <span>${escapeHtml(data.code)}</span>
             <b>${assigned.toLocaleString('es-AR')} UNIDADES</b>
         </div>

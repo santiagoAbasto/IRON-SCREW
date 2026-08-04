@@ -377,4 +377,27 @@ class OrderFinalizationTest extends TestCase
             'label_count' => 1,
         ]);
     }
+
+    public function test_long_customer_and_product_names_use_compact_label_layout(): void
+    {
+        $role = Role::create(['name' => 'Impresión', 'permissions' => ['orders.view']]);
+        $user = User::factory()->create(['role_id' => $role->id, 'is_active' => true]);
+        $order = SalesOrder::create([
+            'contabilium_id' => 1700,
+            'number' => 'OV-TEXTO-LARGO',
+            'customer' => 'AUSTRAL ABERTURAS S. A. S.',
+            'status' => 'Pendiente',
+        ]);
+        $order->items()->create([
+            'code' => '201-658 E',
+            'description' => 'TORNILLO PUNTA AGUJA CON NIPPLE ENCLIPADOR (ENSAMBLADO)',
+            'quantity' => 5000,
+        ]);
+
+        $this->withSession(['iron_user' => $user->id])
+            ->get(route('orders.show', $order))
+            ->assertOk()
+            ->assertSee('thermal-customer customer-extra-long', false)
+            ->assertSee('thermal-product description-long', false);
+    }
 }
