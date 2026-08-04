@@ -435,7 +435,12 @@ function restoreLabelAdjustment(dialog) {
 }
 
 function labelMarkup(data, type, assigned, position, total, standalone) {
-    const customer = standalone ? '' : `<div class="thermal-customer">${escapeHtml(data.customer.toUpperCase())}</div>`;
+    const customerName = String(data.customer || '').toUpperCase().trim();
+    const customerLength = Array.from(customerName).length;
+    const customerFitClass = customerLength > 23
+        ? ' customer-extra-long'
+        : (customerLength > 16 ? ' customer-long' : '');
+    const customer = standalone ? '' : `<div class="thermal-customer${customerFitClass}">${escapeHtml(customerName)}</div>`;
     const reference = standalone ? '' : ` · OV ${escapeHtml(data.order)}`;
     const typeLabel = type === 'bulk' ? 'GRANEL' : (type === 'fractioned' ? 'FRACCIONADO' : 'PEDIDO');
 
