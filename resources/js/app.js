@@ -47,6 +47,19 @@ document.querySelector('[data-sync-form]')?.addEventListener('submit', (event) =
     button.textContent = '↻ En cola...';
 });
 
+const labelSizeControls = Array.from(document.querySelectorAll('[data-label-size], [data-print-all-size]'));
+let preferredLabelSize = '80x50';
+try {
+    const storedLabelSize = localStorage.getItem('iron-label-size');
+    if (storedLabelSize === '100x80') preferredLabelSize = storedLabelSize;
+} catch (_) {
+    // The selector still works when browser storage is unavailable.
+}
+syncLabelSize(preferredLabelSize);
+labelSizeControls.forEach((control) => {
+    control.addEventListener('change', () => syncLabelSize(control.value));
+});
+
 document.querySelectorAll('[data-label-open]').forEach((button) => {
     button.addEventListener('click', () => {
         const dialog = document.getElementById(button.dataset.labelOpen);
@@ -465,7 +478,11 @@ function labelMarkup(data, type, assigned, position, total, standalone) {
 
 function openPrintDialog(area, size = '80x50') {
     const normalizedSize = size === '100x80' ? '100x80' : '80x50';
+    syncLabelSize(normalizedSize);
     document.documentElement.dataset.printLabelSize = normalizedSize;
+    document.body.dataset.printLabelSize = normalizedSize;
+    area.classList.toggle('label-size-100x80', normalizedSize === '100x80');
+    area.classList.toggle('label-size-80x50', normalizedSize === '80x50');
 
     let pageStyle = document.querySelector('#label-page-size');
     if (!pageStyle) {
@@ -477,9 +494,22 @@ function openPrintDialog(area, size = '80x50') {
         ? '@page { size: 100mm 80mm; margin: 0; }'
         : '@page { size: 80mm 50mm; margin: 0; }';
 
-    // Keep the browser print call in the original click event. Delaying it until
-    // images load can make Chrome/Safari discard the user activation.
+    // Force Chrome to apply the selected page geometry before opening its dialog.
+    void document.documentElement.offsetWidth;
     window.print();
+}
+
+function syncLabelSize(size) {
+    const normalizedSize = size === '100x80' ? '100x80' : '80x50';
+    labelSizeControls.forEach((control) => {
+        control.value = normalizedSize;
+    });
+    try {
+        localStorage.setItem('iron-label-size', normalizedSize);
+    } catch (_) {
+        // Keep the current page synchronized even when storage is unavailable.
+    }
+    return normalizedSize;
 }
 
 function escapeHtml(value = '') {
