@@ -33,7 +33,7 @@
  <div class="data-table product-table">
   <div class="thead"><span>CÓDIGO</span><span>DESCRIPCIÓN</span><span>UNIDADES X CAJA<br>FRACCIONADOS</span><span>UNIDADES X CAJA<br>GRANEL</span><span></span></div>
   @forelse($products as $product)
-  @php($usesExactOrder = $product->label_exact_order || (int)$product->units_bulk === 0)
+  @php($usesExactOrder = (int)$product->units_bulk === 0)
   <div class="tr"><span>{{ $product->code }}</span><span>{{ $product->description }}</span><span>{{ $product->units_fractioned > 0 ? number_format($product->units_fractioned,0,',','.') : '—' }}</span><span>{{ $usesExactOrder ? 'A pedido' : ($product->units_bulk > 0 ? number_format($product->units_bulk,0,',','.') : '—') }}</span>
    <span class="action-buttons">
     <button class="printer" type="button" title="Imprimir etiquetas" aria-label="Imprimir etiquetas" data-label-open="product-label-dialog-{{ $product->id }}"><img src="{{ asset('assets/figma/printer.svg') }}" alt=""></button>

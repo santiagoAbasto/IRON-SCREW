@@ -36,7 +36,7 @@
     $bulk = (int) ($product?->units_bulk ?? 0);
     $quantity = (float) $item->quantity;
     $labelDescription = preg_replace('/(\d+)\s+[xX]\s+(\d+)/u', '$1 X $2', $item->description);
-    $exactOrder = $product !== null && ((bool) $product->label_exact_order || $bulk === 0);
+    $exactOrder = $product !== null && $bulk === 0;
     $bulkMatches = $bulk > 0 && abs(fmod($quantity, $bulk)) < 0.00001;
     $fractionedMatches = $fractioned > 0 && abs(fmod($quantity, $fractioned)) < 0.00001;
     $quantityMismatch = !$exactOrder && !$bulkMatches && !$fractionedMatches;
@@ -70,9 +70,8 @@
   <div class="form-grid">
    <label>Unidades por caja fraccionado (opcional)<input type="number" min="0" name="units_fractioned" value="{{ $fractioned }}" autofocus><small>Usá 0 si todavía no está definido.</small></label>
    <label>Unidades por caja granel<input type="number" min="0" name="units_bulk" value="{{ $bulk }}" required><small>Usá 0 si todavía no está definido.</small></label>
-   <label class="check span-2"><input type="checkbox" name="label_exact_order" value="1" @checked($exactOrder)> Imprimir siempre la cantidad exacta pedida</label>
   </div>
-  <p class="configuration-help">Si Granel queda en 0, la etiqueta usará automáticamente la cantidad pedida. Cuando Granel tenga un valor, se aplicará la presentación configurada.</p>
+  <p class="configuration-help">Si Granel queda en 0, la etiqueta usará automáticamente la cantidad pedida. Cuando Granel tenga un valor, esa presentación será la que mande.</p>
   <button class="primary">Guardar presentación</button>
  </form>
 </dialog>

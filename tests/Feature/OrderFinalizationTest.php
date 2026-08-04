@@ -233,6 +233,22 @@ class OrderFinalizationTest extends TestCase
             ->assertSee('caja a pedido');
     }
 
+    public function test_defined_bulk_always_overrides_legacy_exact_order_flag(): void
+    {
+        $role = Role::create(['name' => 'Consulta', 'permissions' => ['orders.view']]);
+        $user = User::factory()->create(['role_id' => $role->id, 'is_active' => true]);
+        $order = SalesOrder::create(['contabilium_id' => 1203, 'number' => 'OV-GRANEL-MANDA', 'customer' => 'Cliente', 'status' => 'Pendiente', 'details_synced_at' => now()]);
+        Product::create(['contabilium_id' => 1203, 'code' => 'GRANEL-400', 'description' => 'Disco de corte', 'units_fractioned' => 25, 'units_bulk' => 400, 'label_exact_order' => true, 'is_active' => true]);
+        $order->items()->create(['code' => 'GRANEL-400', 'description' => 'Disco de corte', 'quantity' => 25]);
+
+        $this->withSession(['iron_user' => $user->id])
+            ->get(route('orders.show', $order))
+            ->assertOk()
+            ->assertSee('data-exact-order="false"', false)
+            ->assertSee('caja fraccionada')
+            ->assertDontSee('caja a pedido');
+    }
+
     public function test_stale_order_opens_from_local_data_and_refreshes_in_queue(): void
     {
         Queue::fake();
