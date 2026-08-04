@@ -310,25 +310,14 @@ async function saveLabelAdjustment(dialog) {
     }
     if (dialog.dataset.saveUrl) {
         try {
-            const response = await fetch(dialog.dataset.saveUrl, {
-                method: 'PUT',
-                headers: {
-                    'Accept': 'application/json',
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '',
-                },
-                body: JSON.stringify({
-                    type: adjustment.type,
-                    units: adjustment.units,
-                    count: adjustment.count,
-                    allow_overage: adjustment.allowOverage,
-                }),
-            });
-            if (!response.ok) throw new Error('No se pudo guardar el ajuste compartido.');
+            const response = await saveSharedAdjustmentWithRetry(dialog.dataset.saveUrl, adjustment, button);
+            if (response.redirected || !response.headers.get('content-type')?.includes('application/json')) {
+                throw new Error('La sesión venció. Actualizá la página e iniciá sesión nuevamente.');
+            }
             const payload = await response.json();
             Object.assign(adjustment, payload.adjustment || {});
             dialog.dataset.savedAdjustment = JSON.stringify(adjustment);
-        } catch (_) {
+        } catch (error) {
             if (button) {
                 button.disabled = false;
                 button.textContent = 'Reintentar guardado';
@@ -336,7 +325,7 @@ async function saveLabelAdjustment(dialog) {
             const alert = dialog.querySelector('[data-quantity-alert]');
             if (alert) {
                 alert.hidden = false;
-                alert.innerHTML = '<strong>No se pudo compartir el ajuste.</strong><br>Revisá la conexión e intentá guardarlo nuevamente.';
+                alert.innerHTML = `<strong>No se pudo compartir el ajuste.</strong><br>${escapeHtml(error.message || 'Revisá la conexión e intentá guardarlo nuevamente.')}`;
             }
             return;
         }
@@ -354,6 +343,49 @@ async function saveLabelAdjustment(dialog) {
     }
     reflectLabelAdjustment(dialog, adjustment);
     dialog.close();
+}
+
+async function saveSharedAdjustmentWithRetry(url, adjustment, button) {
+    const retryableStatuses = new Set([408, 425, 429]);
+    let lastError;
+
+    for (let attempt = 1; attempt <= 3; attempt += 1) {
+        if (button) button.textContent = attempt === 1 ? 'Guardando...' : `Reintentando (${attempt}/3)...`;
+        try {
+            const response = await fetch(url, {
+                method: 'PUT',
+                credentials: 'same-origin',
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '',
+                },
+                body: JSON.stringify({
+                    type: adjustment.type,
+                    units: adjustment.units,
+                    count: adjustment.count,
+                    allow_overage: adjustment.allowOverage,
+                }),
+            });
+
+            if (response.ok) return response;
+            if (response.status === 401 || response.status === 419) {
+                throw new Error('La sesión venció. Actualizá la página e iniciá sesión nuevamente.');
+            }
+            if (!retryableStatuses.has(response.status) && response.status < 500) {
+                throw new Error(`El servidor rechazó el ajuste (HTTP ${response.status}).`);
+            }
+            lastError = new Error(`Error temporal del servidor (HTTP ${response.status}).`);
+        } catch (error) {
+            if (error.message.includes('sesión venció') || error.message.includes('rechazó')) throw error;
+            lastError = error;
+        }
+
+        if (attempt < 3) await new Promise((resolve) => window.setTimeout(resolve, attempt * 700));
+    }
+
+    throw lastError || new Error('Revisá la conexión e intentá guardarlo nuevamente.');
 }
 
 function reflectLabelAdjustment(dialog, adjustment) {
