@@ -36,6 +36,7 @@ Route::middleware('iron.auth')->group(function () {
     Route::get('/ordenes', [OrderController::class, 'index'])->middleware('permission:orders.view')->name('orders.index');
     Route::get('/ordenes/{order}', [OrderController::class, 'show'])->middleware('permission:orders.view')->name('orders.show');
     Route::post('/ordenes/{order}/actualizar-detalle', [OrderController::class, 'refreshDetail'])->middleware('permission:orders.view')->name('orders.refresh-detail');
+    Route::put('/ordenes/{order}/articulos/{item}/ajuste-etiqueta', [OrderController::class, 'saveLabelAdjustment'])->middleware('permission:orders.view')->name('orders.items.label-adjustment');
     Route::patch('/ordenes/{order}/finalizar', [OrderController::class, 'finalize'])->middleware('permission:orders.manage')->name('orders.finalize');
     Route::post('/ordenes/sincronizar/contabilium', [OrderController::class, 'sync'])->middleware('permission:orders.manage')->name('orders.sync');
     Route::view('/configuracion', 'settings.index')->middleware('permission:settings.view')->name('settings.index');

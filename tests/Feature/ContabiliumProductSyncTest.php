@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Product;
 use App\Models\SalesOrder;
+use App\Models\User;
 use App\Services\ContabiliumClient;
 use App\Services\ContabiliumSyncService;
 use Carbon\Carbon;
@@ -127,5 +128,31 @@ class ContabiliumProductSyncTest extends TestCase
         );
 
         $this->assertDatabaseHas('sales_orders',['contabilium_id'=>901,'status'=>'Finalizado']);
+    }
+
+    public function test_order_detail_sync_preserves_shared_label_adjustments(): void
+    {
+        $user=User::factory()->create();
+        $order=SalesOrder::create(['contabilium_id'=>950,'number'=>'00000950','customer'=>'Cliente','status'=>'Finalizado','locally_finalized_at'=>now()]);
+        $order->items()->create([
+            'contabilium_concept_id'=>501,'code'=>'ITEM-501','description'=>'Producto','quantity'=>20,
+            'label_type'=>'bulk','label_units'=>12,'label_count'=>2,'label_allow_overage'=>true,
+            'label_adjusted_by'=>$user->id,'label_adjusted_at'=>now(),
+        ]);
+        $client=Mockery::mock(ContabiliumClient::class);
+        $client->shouldReceive('order')->once()->with(950)->andReturn([
+            'NumeroOrden'=>'00000950','Comprador'=>'Cliente','Items'=>[ [
+                'IdConcepto'=>501,'Codigo'=>'ITEM-501','Concepto'=>'Producto actualizado','Cantidad'=>30,
+            ] ],
+        ]);
+
+        (new ContabiliumSyncService($client))->syncOrderDetail($order);
+
+        $item=$order->fresh('items')->items->sole();
+        $this->assertSame('30.000',$item->quantity);
+        $this->assertSame('bulk',$item->label_type);
+        $this->assertSame('12.000',$item->label_units);
+        $this->assertSame(2,$item->label_count);
+        $this->assertSame($user->id,$item->label_adjusted_by);
     }
 }

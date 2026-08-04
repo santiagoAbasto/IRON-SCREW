@@ -50,12 +50,21 @@
         : ($fractionedMatches
             ? ($boxes === 1 ? 'fraccionada' : 'fraccionadas')
             : ($bulk > 0 ? 'granel parcial' : ($fractioned > 0 ? 'fraccionada parcial' : ''))));
+    $savedAdjustment = $item->label_type && $item->label_units && $item->label_count ? [
+        'type' => $item->label_type,
+        'units' => (float) $item->label_units,
+        'count' => (int) $item->label_count,
+        'allowOverage' => (bool) $item->label_allow_overage,
+        'adjustedBy' => $item->adjustedBy?->name,
+    ] : null;
 @endphp
-<div class="tr" data-item-row="{{ $item->id }}"><span>{{ $item->code ?: 'S/C' }}</span><span>{{ $item->description }}</span><span data-item-quantity="{{ $item->id }}" class="{{ $quantityMismatch ? 'quantity-mismatch' : ($quantityReview ? 'quantity-review' : '') }}" @if($quantityMismatch) title="La cantidad pedida no coincide con una caja completa de granel ni de fraccionado" @elseif($quantityReview) title="Cierra con fraccionado, pero también cabe en una caja granel. Revisá la presentación." @endif>{{ number_format($quantity,0,',','.') }}</span>
+<div class="tr" data-item-row="{{ $item->id }}"><span>{{ $item->code ?: 'S/C' }}</span><span>{{ $item->description }}</span><span data-item-quantity="{{ $item->id }}" class="{{ $savedAdjustment ? 'quantity-adjusted' : ($quantityMismatch ? 'quantity-mismatch' : ($quantityReview ? 'quantity-review' : '')) }}" @if($savedAdjustment) title="Ajustado por {{ $savedAdjustment['adjustedBy'] ?: 'un usuario' }}" @elseif($quantityMismatch) title="La cantidad pedida no coincide con una caja completa de granel ni de fraccionado" @elseif($quantityReview) title="Cierra con fraccionado, pero también cabe en una caja granel. Revisá la presentación." @endif>{{ number_format($quantity,0,',','.') }}</span>
  <span>@if($fractioned)<button class="packaging-link" type="button" onclick="document.querySelector('#packaging-dialog-{{ $item->id }}').showModal()">{{ number_format($fractioned,0,',','.') }}</button>@elseif($product)<a class="packaging-link missing" href="{{ route('settings.products',['q'=>$product->code]) }}" title="Configurar este producto">0</a>@else 0 @endif</span>
  <span>@if($bulk)<button class="packaging-link" type="button" onclick="document.querySelector('#packaging-dialog-{{ $item->id }}').showModal()">{{ number_format($bulk,0,',','.') }}</button>@elseif($exactOrder)<button class="packaging-link exact-order" type="button" onclick="document.querySelector('#packaging-dialog-{{ $item->id }}').showModal()" title="La etiqueta usa la cantidad exacta del pedido">A pedido</button>@elseif($product)<a class="packaging-link missing" href="{{ route('settings.products',['q'=>$product->code]) }}" title="Configurar este producto">0</a>@else 0 @endif</span>
  <span class="box-total" data-item-box-total="{{ $item->id }}">
- @if(!$boxes) —
+ @if($savedAdjustment)
+  <strong>{{ number_format($savedAdjustment['count'],0,',','.') }}</strong><small>{{ $savedAdjustment['count']===1?'caja':'cajas' }} {{ $savedAdjustment['type']==='order'?'a pedido':($savedAdjustment['type']==='bulk'?'granel':($savedAdjustment['count']===1?'fraccionada':'fraccionadas')) }}</small><em class="packaging-adjusted" title="Último ajuste por {{ $savedAdjustment['adjustedBy'] ?: 'un usuario' }}">Ajustado · {{ number_format($savedAdjustment['units'],0,',','.') }} u</em>
+ @elseif(!$boxes) —
   @else
    <strong>{{ $boxes }}</strong><small>{{ $boxes===1?'caja':'cajas' }} {{ $boxType }}</small>
    @if($quantityReview)<em class="packaging-review">Revisar presentación</em>@endif
@@ -76,7 +85,7 @@
  </form>
 </dialog>
 @endif
-<dialog class="form-dialog label-dialog" id="label-dialog-{{ $item->id }}" data-label-dialog data-item-id="{{ $item->id }}" data-code="{{ $item->code }}" data-description="{{ $item->description }}" data-quantity="{{ $quantity }}" data-fractioned="{{ $fractioned }}" data-bulk="{{ $bulk }}" data-exact-order="{{ $exactOrder ? 'true' : 'false' }}" data-customer="{{ $order->customer }}" data-order="{{ $order->number }}" data-logo="{{ asset('assets/figma/label-logo-bw.jpg') }}">
+<dialog class="form-dialog label-dialog" id="label-dialog-{{ $item->id }}" data-label-dialog data-item-id="{{ $item->id }}" data-code="{{ $item->code }}" data-description="{{ $item->description }}" data-quantity="{{ $quantity }}" data-fractioned="{{ $fractioned }}" data-bulk="{{ $bulk }}" data-exact-order="{{ $exactOrder ? 'true' : 'false' }}" data-save-url="{{ route('orders.items.label-adjustment',[$order,$item]) }}" @if($savedAdjustment) data-saved-adjustment="{{ json_encode($savedAdjustment) }}" @endif data-customer="{{ $order->customer }}" data-order="{{ $order->number }}" data-logo="{{ asset('assets/figma/label-logo-bw.jpg') }}">
  <button type="button" class="dialog-close" data-dialog-close>×</button><h2>Imprimir etiquetas</h2><p class="label-product"><strong>{{ $item->code }}</strong> · {{ $item->description }}</p>
  @if(!$exactOrder&&(!$fractioned||!$bulk))<div class="quantity-alert"><strong>Presentación pendiente de configurar.</strong><br>Podés indicar las unidades manualmente o completar el producto desde Configuración.</div>@endif
  <div class="label-summary"><span>Pedido <b>{{ number_format($quantity,0,',','.') }}</b></span><span>Fraccionado <b>{{ $fractioned?:'—' }}</b></span><span>Granel <b>{{ $exactOrder?'A pedido':($bulk?:'—') }}</b></span></div>

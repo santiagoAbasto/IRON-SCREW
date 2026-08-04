@@ -308,4 +308,31 @@ class OrderFinalizationTest extends TestCase
         $this->assertSame('Finalizado', $order->fresh()->status);
         Queue::assertPushed(SyncContabiliumOrderDetailJob::class, fn ($job) => $job->orderId === $order->id);
     }
+
+    public function test_label_adjustment_is_shared_between_operator_and_admin(): void
+    {
+        $role = Role::create(['name' => 'Etiquetas', 'permissions' => ['orders.view']]);
+        $operator = User::factory()->create(['name' => 'Operador Depósito', 'role_id' => $role->id, 'is_active' => true]);
+        $admin = User::factory()->create(['name' => 'Administrador', 'role_id' => $role->id, 'is_active' => true]);
+        $order = SalesOrder::create(['contabilium_id' => 1500, 'number' => 'OV-COMPARTIDA', 'customer' => 'Cliente', 'status' => 'Pendiente', 'details_synced_at' => now()]);
+        $item = $order->items()->create(['code' => 'COMP-1', 'description' => 'Producto compartido', 'quantity' => 100]);
+
+        $this->withSession(['iron_user' => $operator->id])
+            ->putJson(route('orders.items.label-adjustment', [$order, $item]), [
+                'type' => 'bulk', 'units' => 60, 'count' => 2, 'allow_overage' => true,
+            ])
+            ->assertOk()
+            ->assertJsonPath('adjustment.adjustedBy', 'Operador Depósito');
+
+        $this->assertDatabaseHas('sales_order_items', [
+            'id' => $item->id, 'label_type' => 'bulk', 'label_units' => 60, 'label_count' => 2,
+            'label_adjusted_by' => $operator->id,
+        ]);
+        $this->withSession(['iron_user' => $admin->id])
+            ->get(route('orders.show', $order))
+            ->assertOk()
+            ->assertSee('Ajustado · 60 u')
+            ->assertSee('Operador Depósito')
+            ->assertSee('data-saved-adjustment', false);
+    }
 }

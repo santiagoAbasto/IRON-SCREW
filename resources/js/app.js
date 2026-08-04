@@ -199,16 +199,32 @@ function printAllOrderLabels() {
         const bulk = Number(dialog.dataset.bulk);
         const fractioned = Number(dialog.dataset.fractioned);
         const recommendation = recommendedPackaging(quantity, bulk, fractioned, dialog.dataset.exactOrder === 'true');
-        const adjusted = dialog.dataset.batchAdjusted === 'true';
+        let savedAdjustment = null;
+        try {
+            savedAdjustment = JSON.parse(dialog.dataset.savedAdjustment || 'null');
+        } catch (_) {
+            savedAdjustment = null;
+        }
+        const currentAdjusted = dialog.dataset.batchAdjusted === 'true';
         const selectedType = dialog.querySelector('[data-label-type]')?.value;
         const selectedUnits = Number(dialog.querySelector('[data-units-per-label]')?.value);
         const selectedCount = Number(dialog.querySelector('[data-label-count]')?.value);
-        const allowOverage = adjusted && dialog.dataset.allowOverage === 'true';
-        const type = adjusted ? selectedType : recommendation.type;
-        const units = adjusted && selectedUnits > 0 ? selectedUnits : recommendation.units;
-        const count = adjusted && selectedCount > 0
+        const savedUnits = Number(savedAdjustment?.units);
+        const savedCount = Number(savedAdjustment?.count);
+        const allowOverage = currentAdjusted
+            ? dialog.dataset.allowOverage === 'true'
+            : savedAdjustment?.allowOverage === true;
+        const type = currentAdjusted
+            ? selectedType
+            : (savedAdjustment?.type || recommendation.type);
+        const units = currentAdjusted && selectedUnits > 0
+            ? selectedUnits
+            : (savedUnits > 0 ? savedUnits : recommendation.units);
+        const count = currentAdjusted && selectedCount > 0
             ? Math.floor(selectedCount)
-            : (type === 'unconfigured' ? 1 : Math.max(1, Math.ceil(quantity / units)));
+            : (savedCount > 0
+                ? Math.floor(savedCount)
+                : (type === 'unconfigured' ? 1 : Math.max(1, Math.ceil(quantity / units))));
 
         return Array.from({ length: count }, (_, index) => {
             const assigned = type === 'bulk'
@@ -264,7 +280,7 @@ function markLabelAdjustmentDirty(dialog) {
     if (button) button.textContent = 'Guardar ajuste';
 }
 
-function saveLabelAdjustment(dialog) {
+async function saveLabelAdjustment(dialog) {
     const type = dialog.querySelector('[data-label-type]')?.value;
     const unitsInput = dialog.querySelector('[data-units-per-label]');
     const countInput = dialog.querySelector('[data-label-count]');
@@ -287,6 +303,44 @@ function saveLabelAdjustment(dialog) {
         count: Math.floor(count),
         allowOverage: dialog.dataset.unitsManuallyEdited === 'true',
     };
+    const button = dialog.querySelector('[data-save-label-adjustment]');
+    if (button) {
+        button.disabled = true;
+        button.textContent = 'Guardando...';
+    }
+    if (dialog.dataset.saveUrl) {
+        try {
+            const response = await fetch(dialog.dataset.saveUrl, {
+                method: 'PUT',
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '',
+                },
+                body: JSON.stringify({
+                    type: adjustment.type,
+                    units: adjustment.units,
+                    count: adjustment.count,
+                    allow_overage: adjustment.allowOverage,
+                }),
+            });
+            if (!response.ok) throw new Error('No se pudo guardar el ajuste compartido.');
+            const payload = await response.json();
+            Object.assign(adjustment, payload.adjustment || {});
+            dialog.dataset.savedAdjustment = JSON.stringify(adjustment);
+        } catch (_) {
+            if (button) {
+                button.disabled = false;
+                button.textContent = 'Reintentar guardado';
+            }
+            const alert = dialog.querySelector('[data-quantity-alert]');
+            if (alert) {
+                alert.hidden = false;
+                alert.innerHTML = '<strong>No se pudo compartir el ajuste.</strong><br>Revisá la conexión e intentá guardarlo nuevamente.';
+            }
+            return;
+        }
+    }
     dialog.dataset.batchAdjusted = 'true';
     dialog.dataset.allowOverage = String(adjustment.allowOverage);
     try {
@@ -294,8 +348,10 @@ function saveLabelAdjustment(dialog) {
     } catch (_) {
         // It still remains saved in the current page when storage is unavailable.
     }
-    const button = dialog.querySelector('[data-save-label-adjustment]');
-    if (button) button.textContent = '✓ Ajuste guardado';
+    if (button) {
+        button.disabled = false;
+        button.textContent = '✓ Ajuste compartido';
+    }
     reflectLabelAdjustment(dialog, adjustment);
     dialog.close();
 }
@@ -311,20 +367,21 @@ function reflectLabelAdjustment(dialog, adjustment) {
     const units = Number(adjustment.units);
     const type = adjustment.type === 'order' ? 'a pedido' : (adjustment.type === 'bulk' ? 'granel' : 'fraccionada');
     const typeLabel = type === 'granel' || type === 'a pedido' ? type : (count === 1 ? type : 'fraccionadas');
-    total.innerHTML = `<strong>${count.toLocaleString('es-AR')}</strong><small>${count === 1 ? 'caja' : 'cajas'} ${typeLabel}</small><em class="packaging-adjusted">Ajustado · ${units.toLocaleString('es-AR')} u</em>`;
+    const adjustedBy = adjustment.adjustedBy ? ` por ${escapeHtml(adjustment.adjustedBy)}` : '';
+    total.innerHTML = `<strong>${count.toLocaleString('es-AR')}</strong><small>${count === 1 ? 'caja' : 'cajas'} ${typeLabel}</small><em class="packaging-adjusted" title="Ajustado${adjustedBy}">Ajustado · ${units.toLocaleString('es-AR')} u</em>`;
     quantity?.classList.remove('quantity-review');
     quantity?.classList.add('quantity-adjusted');
-    if (quantity) quantity.title = `Presentación ajustada manualmente: ${count} ${count === 1 ? 'etiqueta' : 'etiquetas'} de ${units.toLocaleString('es-AR')} unidades`;
+    if (quantity) quantity.title = `Presentación ajustada${adjustment.adjustedBy ? ` por ${adjustment.adjustedBy}` : ''}: ${count} ${count === 1 ? 'etiqueta' : 'etiquetas'} de ${units.toLocaleString('es-AR')} unidades`;
 }
 
 function restoreLabelAdjustment(dialog) {
     if (dialog.dataset.standalone === 'true') return;
     let adjustment = null;
     try {
-        adjustment = JSON.parse(sessionStorage.getItem(labelAdjustmentKey(dialog)) || 'null');
-    } catch (_) {
-        adjustment = null;
-    }
+        adjustment = dialog.dataset.savedAdjustment
+            ? JSON.parse(dialog.dataset.savedAdjustment)
+            : JSON.parse(sessionStorage.getItem(labelAdjustmentKey(dialog)) || 'null');
+    } catch (_) { adjustment = null; }
     if (!adjustment || !['bulk', 'fractioned', 'order'].includes(adjustment.type)) return;
     if (!(Number(adjustment.units) > 0) || !(Number(adjustment.count) > 0)) return;
 
@@ -336,7 +393,7 @@ function restoreLabelAdjustment(dialog) {
     dialog.dataset.allowOverage = String(adjustment.allowOverage === true);
     dialog.dataset.unitsManuallyEdited = String(adjustment.allowOverage === true);
     const button = dialog.querySelector('[data-save-label-adjustment]');
-    if (button) button.textContent = '✓ Ajuste guardado';
+    if (button) button.textContent = dialog.dataset.savedAdjustment ? '✓ Ajuste compartido' : '✓ Ajuste guardado';
     updateLabelCalculation(dialog, false);
     reflectLabelAdjustment(dialog, adjustment);
 }

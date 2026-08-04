@@ -77,6 +77,14 @@ class ContabiliumSyncService {
             return $order->fresh('items');
         }
         DB::transaction(function () use($order,$detail) {
+            $savedAdjustments=[];
+            foreach($order->items()->orderBy('id')->get() as $existingItem) {
+                if(!$existingItem->label_type || !$existingItem->label_units || !$existingItem->label_count) continue;
+                $key=(string)($existingItem->contabilium_concept_id??'').'|'.mb_strtoupper(trim((string)$existingItem->code));
+                $savedAdjustments[$key][]=collect($existingItem->toArray())->only([
+                    'label_type','label_units','label_count','label_allow_overage','label_adjusted_by','label_adjusted_at',
+                ])->all();
+            }
             $status=$order->locally_finalized_at ? 'Finalizado' : 'Pendiente';
             $order->update(['customer_id'=>$detail['IDCliente']??$order->customer_id,'customer'=>$detail['Comprador']??$order->customer,
                 'created_on'=>$this->date($detail['FechaCreacion']??null)??$order->created_on,'due_on'=>$this->date($detail['FechaVencimiento']??null),
@@ -86,8 +94,11 @@ class ContabiliumSyncService {
             $order->items()->delete();
             foreach($detail['Items']??[] as $item) {
                 $product=Product::where('contabilium_id',$item['IdConcepto']??0)->first();
-                $order->items()->create(['contabilium_concept_id'=>$item['IdConcepto']??null,'code'=>$item['Codigo']??$product?->code,'description'=>$item['Concepto']??$product?->description??'Producto',
-                    'quantity'=>$this->decimal($item['Cantidad']??0)??0,'unit_price'=>$this->decimal($item['PrecioUnitario']??null),'tax'=>$this->decimal($item['Iva']??null),'raw'=>$item]);
+                $code=$item['Codigo']??$product?->code;
+                $key=(string)($item['IdConcepto']??'').'|'.mb_strtoupper(trim((string)$code));
+                $adjustment=!empty($savedAdjustments[$key]) ? array_shift($savedAdjustments[$key]) : null;
+                $order->items()->create(array_merge(['contabilium_concept_id'=>$item['IdConcepto']??null,'code'=>$code,'description'=>$item['Concepto']??$product?->description??'Producto',
+                    'quantity'=>$this->decimal($item['Cantidad']??0)??0,'unit_price'=>$this->decimal($item['PrecioUnitario']??null),'tax'=>$this->decimal($item['Iva']??null),'raw'=>$item],$adjustment??[]));
             }
         }); return $order->fresh('items');
     }
