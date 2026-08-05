@@ -36,7 +36,7 @@
   @php($usesExactOrder = (int)$product->units_bulk === 0)
   @php($fractionedDisplay = $product->label_unit==='kg' ? rtrim(rtrim(number_format((float)$product->units_fractioned,3,',','.'),'0'),',') : number_format((float)$product->units_fractioned,0,',','.'))
   @php($bulkDisplay = $product->label_unit==='kg' ? rtrim(rtrim(number_format((float)$product->units_bulk,3,',','.'),'0'),',') : number_format((float)$product->units_bulk,0,',','.'))
-  <div class="tr"><span>{{ $product->code }}</span><span>{{ $product->description }} @if($product->label_unit==='kg')<small class="unit-badge">KG</small>@endif</span><span>{{ $product->units_fractioned > 0 ? $fractionedDisplay.' '.$product->labelUnitText() : '—' }}</span><span>{{ $usesExactOrder ? 'A pedido ('.$product->labelUnitText().')' : ($product->units_bulk > 0 ? $bulkDisplay.' '.$product->labelUnitText() : '—') }}</span>
+  <div class="tr"><span>{{ $product->code }}</span><span>{{ $product->description }}</span><span>{{ $product->units_fractioned > 0 ? $fractionedDisplay : '—' }}</span><span>{{ $usesExactOrder ? 'A pedido' : ($product->units_bulk > 0 ? $bulkDisplay : '—') }}</span>
    <span class="action-buttons">
     <button class="printer" type="button" title="Imprimir etiquetas" aria-label="Imprimir etiquetas" data-label-open="product-label-dialog-{{ $product->id }}"><img src="{{ asset('assets/figma/printer.svg') }}" alt=""></button>
     @if(in_array('products.manage',$ironUser->role?->permissions??[]))

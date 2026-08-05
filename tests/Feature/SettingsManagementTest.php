@@ -57,7 +57,7 @@ class SettingsManagementTest extends TestCase
         $this->withSession(['iron_user' => $user->id])->get(route('settings.products.bulk-template'))->assertForbidden();
     }
 
-    public function test_product_list_keeps_thousands_for_units_and_only_trims_kg_decimals(): void
+    public function test_product_list_keeps_numeric_presentations_without_unit_suffixes(): void
     {
         $role = Role::create(['name' => 'Administrador', 'permissions' => ['settings.view', 'products.view', 'products.manage']]);
         $admin = User::factory()->create(['role_id' => $role->id, 'is_active' => true]);
@@ -66,10 +66,12 @@ class SettingsManagementTest extends TestCase
 
         $this->withSession(['iron_user' => $admin->id])->get(route('settings.products'))
             ->assertOk()
-            ->assertSee('2.000 UNIDADES')
-            ->assertSee('20.000 UNIDADES')
-            ->assertSee('2,5 KG')
-            ->assertSee('10,25 KG');
+            ->assertSee('2.000')
+            ->assertSee('20.000')
+            ->assertSee('2,5')
+            ->assertSee('10,25')
+            ->assertDontSee('2.000 UNIDADES')
+            ->assertDontSee('2,5 KG');
     }
 
     public function test_admin_can_download_template_and_import_bulk_quantities(): void
