@@ -57,6 +57,21 @@ class SettingsManagementTest extends TestCase
         $this->withSession(['iron_user' => $user->id])->get(route('settings.products.bulk-template'))->assertForbidden();
     }
 
+    public function test_product_list_keeps_thousands_for_units_and_only_trims_kg_decimals(): void
+    {
+        $role = Role::create(['name' => 'Administrador', 'permissions' => ['settings.view', 'products.view', 'products.manage']]);
+        $admin = User::factory()->create(['role_id' => $role->id, 'is_active' => true]);
+        Product::create(['contabilium_id' => 901, 'code' => 'UNIDADES-2000', 'description' => 'Producto por unidades', 'units_fractioned' => 2000, 'units_bulk' => 20000, 'label_unit' => 'units', 'is_active' => true]);
+        Product::create(['contabilium_id' => 902, 'code' => 'KG-2500', 'description' => 'Producto por peso', 'units_fractioned' => 2.5, 'units_bulk' => 10.25, 'label_unit' => 'kg', 'is_active' => true]);
+
+        $this->withSession(['iron_user' => $admin->id])->get(route('settings.products'))
+            ->assertOk()
+            ->assertSee('2.000 UNIDADES')
+            ->assertSee('20.000 UNIDADES')
+            ->assertSee('2,5 KG')
+            ->assertSee('10,25 KG');
+    }
+
     public function test_admin_can_download_template_and_import_bulk_quantities(): void
     {
         $role = Role::create(['name' => 'Administrador', 'permissions' => ['settings.view', 'products.view', 'products.manage']]);
