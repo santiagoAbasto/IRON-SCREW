@@ -19,13 +19,18 @@ class OrderController extends Controller
             ->when($q, fn ($query) => $query->where(fn ($s) => $s
                 ->where('number', 'like', "%{$q}%")
                 ->orWhere('customer', 'like', "%{$q}%")))
-            ->orderByRaw("CASE LOWER(TRIM(status))
-                WHEN 'pendiente' THEN 1
-                WHEN 'finalizado' THEN 2
-                WHEN 'cancelado' THEN 3
-                ELSE 4
-            END")
-            ->latest('created_on')
+            ->when($q !== '',
+                fn ($query) => $query->latest('created_on')->latest('id'),
+                fn ($query) => $query
+                    ->orderByRaw("CASE LOWER(TRIM(status))
+                        WHEN 'pendiente' THEN 1
+                        WHEN 'finalizado' THEN 2
+                        WHEN 'cancelado' THEN 3
+                        ELSE 4
+                    END")
+                    ->latest('created_on')
+                    ->latest('id')
+            )
             ->paginate(20)
             ->withQueryString();
         $lastSync = SalesOrder::whereNotNull('synced_at')->latest('synced_at')->first()?->synced_at;

@@ -17,6 +17,19 @@ class OrderFinalizationTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_order_search_always_lists_newest_matches_first(): void
+    {
+        $role = Role::create(['name' => 'Consulta', 'permissions' => ['orders.view']]);
+        $user = User::factory()->create(['role_id' => $role->id, 'is_active' => true]);
+        SalesOrder::create(['contabilium_id' => 9101, 'number' => 'OV-ANTIGUA', 'customer' => 'CLIENTE BUSCADO', 'created_on' => '2026-05-01', 'status' => 'Pendiente']);
+        SalesOrder::create(['contabilium_id' => 9102, 'number' => 'OV-NUEVA', 'customer' => 'CLIENTE BUSCADO', 'created_on' => '2026-08-04', 'status' => 'Finalizado']);
+
+        $this->withSession(['iron_user' => $user->id])
+            ->get(route('orders.index', ['q' => 'CLIENTE BUSCADO']))
+            ->assertOk()
+            ->assertSeeInOrder(['OV-NUEVA', 'OV-ANTIGUA']);
+    }
+
     public function test_only_new_orders_can_be_finalized_locally(): void
     {
         $role = Role::create(['name' => 'Administrador', 'permissions' => ['orders.view', 'orders.manage']]);
