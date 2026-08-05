@@ -22,8 +22,8 @@ class ProductBulkSpreadsheet
             $rows[] = [
                 $product->code,
                 $product->description,
-                $product->units_fractioned ?: null,
-                $product->units_bulk ?: null,
+                (float) $product->units_fractioned > 0 ? $product->units_fractioned : null,
+                (float) $product->units_bulk > 0 ? $product->units_bulk : null,
             ];
         }
 
@@ -91,16 +91,16 @@ class ProductBulkSpreadsheet
 
             $product = $products[$key];
             $incoming = [
-                'units_fractioned' => $this->blank($fractioned) ? ($sourceFormat ? 0 : null) : (int) $fractioned,
+                'units_fractioned' => $this->blank($fractioned) ? ($sourceFormat ? 0 : null) : (float) $fractioned,
                 'units_fractioned_x100' => 0,
-                'units_bulk' => $this->blank($bulk) ? ($sourceFormat ? 0 : null) : (int) $bulk,
+                'units_bulk' => $this->blank($bulk) ? ($sourceFormat ? 0 : null) : (float) $bulk,
             ];
             $values = [];
             $processed++;
 
             foreach ($incoming as $field => $quantity) {
                 if ($quantity === null) continue;
-                $current = (int) $product->{$field};
+                $current = (float) $product->{$field};
                 if ($current === $quantity) continue;
 
                 $values[$field] = $quantity;
@@ -111,7 +111,7 @@ class ProductBulkSpreadsheet
                     'from' => $current,
                     'to' => $quantity,
                 ];
-                if ($current === 0) $newQuantities[] = $item;
+                if ($current == 0) $newQuantities[] = $item;
                 else $changedQuantities[] = $item;
             }
 
@@ -154,7 +154,7 @@ class ProductBulkSpreadsheet
 
     private function validQuantity(mixed $value, bool $allowZero = false): bool
     {
-        return $this->blank($value) || (is_numeric($value) && (int) $value == $value && (int) $value >= ($allowZero ? 0 : 1));
+        return $this->blank($value) || (is_numeric($value) && (float) $value >= ($allowZero ? 0 : 0.001));
     }
 
     private function readXlsx(string $path): array
@@ -213,7 +213,7 @@ class ProductBulkSpreadsheet
             foreach ($row as $columnIndex => $value) {
                 $reference = chr(65 + $columnIndex).$number;
                 if (is_numeric($value) && $columnIndex >= 2) {
-                    $cells .= "<c r=\"{$reference}\" s=\"2\"><v>".(int) $value.'</v></c>';
+                    $cells .= "<c r=\"{$reference}\" s=\"2\"><v>".rtrim(rtrim(number_format((float) $value, 3, '.', ''), '0'), '.').'</v></c>';
                 } else {
                     $escaped = htmlspecialchars((string) $value, ENT_XML1 | ENT_QUOTES, 'UTF-8');
                     $style = $rowIndex === 0 ? 1 : 0;

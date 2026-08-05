@@ -40,6 +40,23 @@ if (autoOpenDialog instanceof HTMLDialogElement && !autoOpenDialog.open) {
     autoOpenDialog.showModal();
 }
 
+document.querySelectorAll('[data-product-unit-form]').forEach((form) => {
+    const select = form.querySelector('[data-product-unit-select]');
+    const fractionedLabel = form.querySelector('[data-fractioned-unit-label]');
+    const bulkLabel = form.querySelector('[data-bulk-unit-label]');
+    const quantityInputs = form.querySelectorAll('input[name="units_fractioned"], input[name="units_bulk"]');
+    const helpTexts = form.querySelectorAll('[data-unit-help]');
+    const updateUnitFields = () => {
+        const usesKg = select?.value === 'kg';
+        if (fractionedLabel) fractionedLabel.textContent = usesKg ? 'KG por caja fraccionada (opcional)' : 'Unidades x caja fraccionados (opcional)';
+        if (bulkLabel) bulkLabel.textContent = usesKg ? 'KG por caja granel' : 'Unidades x caja graneles';
+        quantityInputs.forEach((input) => { input.step = usesKg ? '0.001' : '1'; });
+        helpTexts.forEach((help) => { help.textContent = usesKg ? 'Ingresá el peso en KG. Podés usar decimales, por ejemplo 2,5.' : 'Usá 0 si todavía no está definido.'; });
+    };
+    select?.addEventListener('change', updateUnitFields);
+    updateUnitFields();
+});
+
 document.querySelector('[data-sync-form]')?.addEventListener('submit', (event) => {
     const button = event.currentTarget.querySelector('[data-sync-button]');
     if (!button || button.disabled) return;

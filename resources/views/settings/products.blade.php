@@ -31,10 +31,11 @@
   @endif
  </div>
  <div class="data-table product-table">
-  <div class="thead"><span>CÓDIGO</span><span>DESCRIPCIÓN</span><span>UNIDADES X CAJA<br>FRACCIONADOS</span><span>UNIDADES X CAJA<br>GRANEL</span><span></span></div>
+  <div class="thead"><span>CÓDIGO</span><span>DESCRIPCIÓN</span><span>PRESENTACIÓN<br>FRACCIONADA</span><span>PRESENTACIÓN<br>GRANEL</span><span></span></div>
   @forelse($products as $product)
   @php($usesExactOrder = (int)$product->units_bulk === 0)
-  <div class="tr"><span>{{ $product->code }}</span><span>{{ $product->description }} @if($product->label_unit==='kg')<small class="unit-badge">KG</small>@endif</span><span>{{ $product->units_fractioned > 0 ? number_format($product->units_fractioned,0,',','.') : '—' }}</span><span>{{ $usesExactOrder ? 'A pedido' : ($product->units_bulk > 0 ? number_format($product->units_bulk,0,',','.') : '—') }}</span>
+  @php($decimals = $product->label_unit==='kg' ? 3 : 0)
+  <div class="tr"><span>{{ $product->code }}</span><span>{{ $product->description }} @if($product->label_unit==='kg')<small class="unit-badge">KG</small>@endif</span><span>{{ $product->units_fractioned > 0 ? rtrim(rtrim(number_format($product->units_fractioned,$decimals,',','.'),'0'),',').' '.$product->labelUnitText() : '—' }}</span><span>{{ $usesExactOrder ? 'A pedido ('.$product->labelUnitText().')' : ($product->units_bulk > 0 ? rtrim(rtrim(number_format($product->units_bulk,$decimals,',','.'),'0'),',').' '.$product->labelUnitText() : '—') }}</span>
    <span class="action-buttons">
     <button class="printer" type="button" title="Imprimir etiquetas" aria-label="Imprimir etiquetas" data-label-open="product-label-dialog-{{ $product->id }}"><img src="{{ asset('assets/figma/printer.svg') }}" alt=""></button>
     @if(in_array('products.manage',$ironUser->role?->permissions??[]))
@@ -43,7 +44,7 @@
     @endif
    </span>
   </div>
-  <dialog class="form-dialog label-dialog" id="product-label-dialog-{{ $product->id }}" data-label-dialog data-standalone="true" data-code="{{ $product->code }}" data-description="{{ $product->description }}" data-quantity="0" data-fractioned="{{ (int)$product->units_fractioned }}" data-bulk="{{ (int)$product->units_bulk }}" data-unit-label="{{ $product->labelUnitText() }}" data-customer="" data-order="" data-logo="{{ asset('assets/figma/label-logo-bw.jpg') }}">
+  <dialog class="form-dialog label-dialog" id="product-label-dialog-{{ $product->id }}" data-label-dialog data-standalone="true" data-code="{{ $product->code }}" data-description="{{ $product->description }}" data-quantity="0" data-fractioned="{{ $product->units_fractioned }}" data-bulk="{{ $product->units_bulk }}" data-unit-label="{{ $product->labelUnitText() }}" data-customer="" data-order="" data-logo="{{ asset('assets/figma/label-logo-bw.jpg') }}">
    <button type="button" class="dialog-close" data-dialog-close>×</button>
    <h2>Imprimir etiquetas de producto</h2>
    <p class="label-product"><strong>{{ $product->code }}</strong> · {{ $product->description }}</p>
