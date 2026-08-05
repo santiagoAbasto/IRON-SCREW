@@ -35,11 +35,13 @@ class ContabiliumSyncService {
                     $code=trim((string)($item['Codigo']??''));
                     if($code==='') continue;
                     $contabiliumId=$item['Id']??null;
-                    Product::updateOrCreate($contabiliumId!==null?['contabilium_id'=>$contabiliumId]:['code'=>$code],[
+                    $product=Product::updateOrCreate($contabiliumId!==null?['contabilium_id'=>$contabiliumId]:['code'=>$code],[
                         'code'=>$code,'description'=>$item['Nombre']??$item['Descripcion']??$code,'barcode'=>$item['CodigoBarras']??null,
                         'price'=>$this->decimal($item['PrecioFinal']??$item['Precio']??null),'stock'=>$this->decimal($item['Stock']??null),
                         'is_active'=>strtolower((string)($item['Estado']??'activo'))!=='inactivo','synced_at'=>now(),
-                    ]); $count++;
+                    ]);
+                    if($product->wasRecentlyCreated && Product::usesKilogramsByDefault($code)) $product->update(['label_unit'=>'kg']);
+                    $count++;
                 }
                 $totalPages=max(1,(int)($payload['TotalPage']??1)); $page++;
             } while($page<=$totalPages);

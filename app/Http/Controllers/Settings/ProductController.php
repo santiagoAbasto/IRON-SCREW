@@ -53,11 +53,13 @@ class ProductController extends Controller {
             'description'=>'required|max:255',
             'units_fractioned'=>'nullable|integer|min:0',
             'units_bulk'=>'required|integer|min:0',
+            'label_unit'=>['nullable',Rule::in(['units','kg'])],
             'label_exact_order'=>'nullable|boolean',
             'is_active'=>'nullable|boolean',
         ]);
         $data['units_fractioned']=$request->filled('units_fractioned')?(int)$data['units_fractioned']:0;
         $data['units_fractioned_x100']=0;
+        $data['label_unit']=$data['label_unit']??$product->label_unit;
         $data['label_exact_order']=$request->boolean('label_exact_order');
         $data['is_active']=$request->boolean('is_active');
         return $data;

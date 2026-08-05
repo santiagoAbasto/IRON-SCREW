@@ -49,6 +49,30 @@ class ContabiliumProductSyncTest extends TestCase
         $this->assertSame(1,Product::count());
     }
 
+    public function test_new_weight_products_are_configured_in_kilograms_without_overwriting_later_edits(): void
+    {
+        $payload = [
+            'Items'=>[ [
+                'Id'=>2314,
+                'Codigo'=>'2314',
+                'Nombre'=>'ARA 1/4',
+                'Estado'=>'Activo',
+            ] ],
+            'TotalPage'=>1,
+        ];
+        $client=Mockery::mock(ContabiliumClient::class);
+        $client->shouldReceive('products')->twice()->with(1)->andReturn($payload);
+        $service=new ContabiliumSyncService($client);
+
+        $service->syncProducts();
+        $product=Product::where('code','2314')->sole();
+        $this->assertSame('kg',$product->label_unit);
+
+        $product->update(['label_unit'=>'units']);
+        $service->syncProducts();
+        $this->assertSame('units',$product->fresh()->label_unit);
+    }
+
     public function test_pending_api_order_is_imported_as_pending(): void
     {
         $client=Mockery::mock(ContabiliumClient::class);

@@ -400,4 +400,41 @@ class OrderFinalizationTest extends TestCase
             ->assertSee('thermal-customer customer-extra-long', false)
             ->assertSee('thermal-product description-long', false);
     }
+
+    public function test_weight_product_prints_kilograms_and_accepts_decimal_adjustments(): void
+    {
+        $role = Role::create(['name' => 'Etiquetas por peso', 'permissions' => ['orders.view']]);
+        $user = User::factory()->create(['role_id' => $role->id, 'is_active' => true]);
+        $product = Product::create([
+            'contabilium_id' => 2314,
+            'code' => '2314',
+            'description' => 'ARA 1/4',
+            'units_fractioned' => 0,
+            'units_bulk' => 0,
+            'label_unit' => 'kg',
+            'is_active' => true,
+        ]);
+        $order = SalesOrder::create([
+            'contabilium_id' => 1800,
+            'number' => 'OV-KG',
+            'customer' => 'Cliente',
+            'status' => 'Pendiente',
+            'details_synced_at' => now(),
+        ]);
+        $item = $order->items()->create(['contabilium_concept_id' => $product->contabilium_id, 'code' => '2314', 'description' => 'ARA 1/4', 'quantity' => 2.5]);
+
+        $this->withSession(['iron_user' => $user->id])
+            ->get(route('orders.show', $order))
+            ->assertOk()
+            ->assertSee('data-unit-label="KG"', false)
+            ->assertSee('2,5 KG')
+            ->assertSee('— KG');
+
+        $this->withSession(['iron_user' => $user->id])
+            ->putJson(route('orders.items.label-adjustment', [$order, $item]), [
+                'type' => 'order', 'units' => 0.5, 'count' => 5, 'allow_overage' => false,
+            ])
+            ->assertOk()
+            ->assertJsonPath('adjustment.units', 0.5);
+    }
 }

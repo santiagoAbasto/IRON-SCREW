@@ -99,6 +99,8 @@ document.querySelector('[data-print-all-labels]')?.addEventListener('click', pri
 
 function updateLabelCalculation(dialog, resetCount, preserveEmptyCount = false) {
     const quantity = Number(dialog.dataset.quantity);
+    const unitLabel = dialog.dataset.unitLabel || 'UNIDADES';
+    const unitNoun = unitLabel === 'KG' ? 'kg' : 'unidades';
     const standalone = dialog.dataset.standalone === 'true';
     const type = dialog.querySelector('[data-label-type]').value;
     const unitsInput = dialog.querySelector('[data-units-per-label]');
@@ -121,12 +123,12 @@ function updateLabelCalculation(dialog, resetCount, preserveEmptyCount = false) 
 
     const units = Number(unitsInput.value);
     const alert = dialog.querySelector('[data-quantity-alert]');
-    if (!Number.isFinite(units) || units < 1) {
+    if (!Number.isFinite(units) || units <= 0) {
         countInput.value = '';
         alert.hidden = false;
-        alert.innerHTML = '<strong>Falta indicar las unidades para esta presentación.</strong><br>Ingresá manualmente las unidades por etiqueta para continuar.';
+        alert.innerHTML = `<strong>Falta indicar la cantidad para esta presentación.</strong><br>Ingresá manualmente los ${unitNoun} por etiqueta para continuar.`;
         dialog.querySelector('[data-label-help]').textContent = 'Esta cantidad todavía no está configurada. Podés escribirla solamente para esta impresión.';
-        dialog.querySelector('[data-preview-units]').textContent = '— UNIDADES';
+        dialog.querySelector('[data-preview-units]').textContent = `— ${unitLabel}`;
         dialog.querySelector('[data-preview-type]').textContent = type === 'order' ? 'PEDIDO' : (type === 'bulk' ? 'GRANEL' : 'FRACCIONADO');
         return;
     }
@@ -142,10 +144,10 @@ function updateLabelCalculation(dialog, resetCount, preserveEmptyCount = false) 
     alert.hidden = exact && !exceedsOrder;
     const fullBoxes = Math.floor(quantity / packagingUnits);
     const partialDescription = fullBoxes > 0
-        ? `${fullBoxes} ${fullBoxes === 1 ? 'caja completa' : 'cajas completas'} y 1 caja parcial de ${remainder.toLocaleString('es-AR')} unidades`
-        : `1 caja parcial de ${remainder.toLocaleString('es-AR')} unidades`;
+        ? `${fullBoxes} ${fullBoxes === 1 ? 'caja completa' : 'cajas completas'} y 1 caja parcial de ${remainder.toLocaleString('es-AR')} ${unitNoun}`
+        : `1 caja parcial de ${remainder.toLocaleString('es-AR')} ${unitNoun}`;
     alert.innerHTML = exceedsOrder
-        ? `<strong>La etiqueta supera la cantidad pedida.</strong><br>La orden pide ${quantity.toLocaleString('es-AR')} unidades y se imprimirán ${units.toLocaleString('es-AR')}. Podés continuar si se completará la caja.`
+        ? `<strong>La etiqueta supera la cantidad pedida.</strong><br>La orden pide ${quantity.toLocaleString('es-AR')} ${unitNoun} y se imprimirán ${units.toLocaleString('es-AR')}. Podés continuar si se completará la caja.`
         : exact
         ? ''
         : fractioned
@@ -155,13 +157,13 @@ function updateLabelCalculation(dialog, resetCount, preserveEmptyCount = false) 
     dialog.querySelector('[data-label-help]').textContent = standalone
         ? 'Indicá cuántas cajas o etiquetas necesitás. Podés modificar tanto las unidades como el total antes de imprimir.'
         : type === 'order'
-        ? `Se imprimirá 1 etiqueta con la cantidad exacta pedida: ${quantity.toLocaleString('es-AR')} unidades.`
+        ? `Se imprimirá 1 etiqueta con la cantidad exacta pedida: ${quantity.toLocaleString('es-AR')} ${unitNoun}.`
         : fractioned
-        ? `Se proponen ${calculatedCount} ${calculatedCount === 1 ? 'etiqueta fraccionada' : 'etiquetas fraccionadas'} de ${units.toLocaleString('es-AR')} unidades. Podés cambiar la cantidad manualmente.`
+        ? `Se proponen ${calculatedCount} ${calculatedCount === 1 ? 'etiqueta fraccionada' : 'etiquetas fraccionadas'} de ${units.toLocaleString('es-AR')} ${unitNoun}. Podés cambiar la cantidad manualmente.`
         : remainder
         ? `La presentación de ${packagingUnits.toLocaleString('es-AR')} no cierra con el pedido. Se proponen ${calculatedCount} etiquetas y la cantidad a imprimir puede ajustarse manualmente.`
-        : `Se proponen ${calculatedCount} etiquetas de granel (${units.toLocaleString('es-AR')} unidades por etiqueta).`;
-    dialog.querySelector('[data-preview-units]').textContent = `${units.toLocaleString('es-AR')} UNIDADES`;
+        : `Se proponen ${calculatedCount} etiquetas de granel (${units.toLocaleString('es-AR')} ${unitNoun} por etiqueta).`;
+    dialog.querySelector('[data-preview-units]').textContent = `${units.toLocaleString('es-AR')} ${unitLabel}`;
     dialog.querySelector('[data-preview-type]').textContent = type === 'order' ? 'PEDIDO' : (type === 'bulk' ? 'GRANEL' : 'FRACCIONADO');
 }
 
@@ -170,7 +172,7 @@ function printLabels(dialog) {
     const countInput = dialog.querySelector('[data-label-count]');
     const units = Number(unitsInput.value);
     const count = Number(countInput.value);
-    if (!Number.isFinite(units) || units < 1) {
+    if (!Number.isFinite(units) || units <= 0) {
         updateLabelCalculation(dialog, false);
         unitsInput.focus();
         return;
@@ -300,7 +302,7 @@ async function saveLabelAdjustment(dialog) {
     const units = Number(unitsInput?.value);
     const count = Number(countInput?.value);
 
-    if (!Number.isFinite(units) || units < 1) {
+    if (!Number.isFinite(units) || units <= 0) {
         updateLabelCalculation(dialog, false);
         unitsInput?.focus();
         return;
@@ -414,13 +416,15 @@ function reflectLabelAdjustment(dialog, adjustment) {
 
     const count = Math.floor(Number(adjustment.count));
     const units = Number(adjustment.units);
+    const unitLabel = dialog.dataset.unitLabel || 'UNIDADES';
+    const unitShort = unitLabel === 'KG' ? 'kg' : 'u';
     const type = adjustment.type === 'order' ? 'a pedido' : (adjustment.type === 'bulk' ? 'granel' : 'fraccionada');
     const typeLabel = type === 'granel' || type === 'a pedido' ? type : (count === 1 ? type : 'fraccionadas');
     const adjustedBy = adjustment.adjustedBy ? ` por ${escapeHtml(adjustment.adjustedBy)}` : '';
-    total.innerHTML = `<strong>${count.toLocaleString('es-AR')}</strong><small>${count === 1 ? 'caja' : 'cajas'} ${typeLabel}</small><em class="packaging-adjusted" title="Ajustado${adjustedBy}">Ajustado · ${units.toLocaleString('es-AR')} u</em>`;
+    total.innerHTML = `<strong>${count.toLocaleString('es-AR')}</strong><small>${count === 1 ? 'caja' : 'cajas'} ${typeLabel}</small><em class="packaging-adjusted" title="Ajustado${adjustedBy}">Ajustado · ${units.toLocaleString('es-AR')} ${unitShort}</em>`;
     quantity?.classList.remove('quantity-review');
     quantity?.classList.add('quantity-adjusted');
-    if (quantity) quantity.title = `Presentación ajustada${adjustment.adjustedBy ? ` por ${adjustment.adjustedBy}` : ''}: ${count} ${count === 1 ? 'etiqueta' : 'etiquetas'} de ${units.toLocaleString('es-AR')} unidades`;
+    if (quantity) quantity.title = `Presentación ajustada${adjustment.adjustedBy ? ` por ${adjustment.adjustedBy}` : ''}: ${count} ${count === 1 ? 'etiqueta' : 'etiquetas'} de ${units.toLocaleString('es-AR')} ${unitLabel === 'KG' ? 'kg' : 'unidades'}`;
 }
 
 function restoreLabelAdjustment(dialog) {
@@ -456,6 +460,7 @@ function labelMarkup(data, type, assigned, position, total, standalone) {
     const customer = standalone ? '' : `<div class="thermal-customer${customerFitClass}">${escapeHtml(customerName)}</div>`;
     const reference = standalone ? '' : ` · OV ${escapeHtml(data.order)}`;
     const typeLabel = type === 'bulk' ? 'GRANEL' : (type === 'fractioned' ? 'FRACCIONADO' : 'PEDIDO');
+    const unitLabel = data.unitLabel || 'UNIDADES';
     const description = formatLabelDescription(data.description);
     const descriptionLength = Array.from(String(data.description || '').trim()).length;
     const descriptionFitClass = descriptionLength > 58
@@ -467,7 +472,7 @@ function labelMarkup(data, type, assigned, position, total, standalone) {
         <div class="thermal-product${descriptionFitClass}">
             <strong>${description}</strong>
             <span>${escapeHtml(data.code)}</span>
-            <b>${assigned.toLocaleString('es-AR')} UNIDADES</b>
+            <b>${assigned.toLocaleString('es-AR')} ${escapeHtml(unitLabel)}</b>
         </div>
         <div class="thermal-brand">
             <img src="${escapeHtml(data.logo)}" alt="">

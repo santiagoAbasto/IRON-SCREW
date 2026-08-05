@@ -75,7 +75,7 @@ class OrderController extends Controller
         $this->ensureOrderIsVisible($order);
         $data = $request->validate([
             'type' => ['required', 'in:bulk,fractioned,order'],
-            'units' => ['required', 'numeric', 'min:1'],
+            'units' => ['required', 'numeric', 'min:0.001'],
             'count' => ['required', 'integer', 'min:1'],
             'allow_overage' => ['nullable', 'boolean'],
             'concept_id' => ['nullable', 'integer'],
