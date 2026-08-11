@@ -4,7 +4,7 @@ Aplicación interna en Laravel 13 y MySQL que sincroniza productos y órdenes de
 
 ## Funciones principales
 
-- Sincronización automática de órdenes cada minuto y productos cada hora.
+- Sincronización automática de órdenes cada 10 minutos y productos cada hora.
 - Sincronización manual desde la pantalla de órdenes.
 - Las órdenes nuevas ingresan como `Pendiente`; sólo Iron Screw puede marcarlas `Finalizado`.
 - Conservación de las cantidades locales de fraccionado y granel durante cada sincronización.
@@ -134,10 +134,21 @@ php artisan queue:restart
 
 ### Scheduler
 
-Agregá una sola entrada al cron:
+Agregá una sola entrada al cron. El cron debe ejecutarse cada minuto para que Laravel
+pueda disparar internamente la sincronización de órdenes cada 10 minutos y la de
+productos cada hora:
 
 ```cron
-* * * * * cd /var/www/iron-screw && php artisan schedule:run >> /dev/null 2>&1
+* * * * * cd /home/iron/IRON-SCREW && /usr/local/bin/php artisan schedule:run >> /home/iron/IRON-SCREW/storage/logs/scheduler.log 2>&1
+```
+
+Podés comprobar la programación y ejecutar una revisión manual con:
+
+```bash
+cd /home/iron/IRON-SCREW
+/usr/local/bin/php artisan schedule:list
+/usr/local/bin/php artisan schedule:run -v
+tail -n 100 storage/logs/scheduler.log
 ```
 
 ## Seguridad

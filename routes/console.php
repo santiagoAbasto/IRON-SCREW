@@ -9,7 +9,7 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote');
 
 Schedule::command('contabilium:sync --orders-only --recent')
-    ->everyMinute()
+    ->everyTenMinutes()
     ->withoutOverlapping(10);
 
 Schedule::command('contabilium:sync --products-only')
