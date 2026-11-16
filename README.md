@@ -14,17 +14,17 @@
 
 <img src="docs/readme/divider.svg" alt="" width="100%">
 
-## 📑 Contenido
+## <img src="docs/readme/ic-indice.svg" width="24" height="24" alt=""> Contenido
 
 [El problema](#-el-problema) · [La solución](#-la-solución) · [Funcionalidades](#-funcionalidades) · [Arquitectura](#-arquitectura) · [Flujos de trabajo](#-flujos-de-trabajo) · [Modelo de datos](#-modelo-de-datos) · [Criterios y decisiones](#-criterios-y-decisiones) · [Stack](#-stack) · [Estructura](#-estructura-del-repo) · [Puesta en marcha](#-puesta-en-marcha) · [Pruebas y calidad](#-pruebas-y-calidad) · [Despliegue](#-despliegue) · [Estado y pendientes](#-estado-y-pendientes) · [Licencia y autoría](#-licencia-y-autoría)
 
 <img src="docs/readme/divider.svg" alt="" width="100%">
 
-## 🧩 El problema
+## <img src="docs/readme/ic-problema.svg" width="24" height="24" alt=""> El problema
 
 El depósito preparaba pedidos a partir de órdenes de venta que vivían en Contabilium, y las etiquetas dependían de cómo se presentaba cada artículo: por caja, a granel, por unidades, por kilogramos o por cantidad exacta del pedido. Esa lógica no existe en el sistema contable, así que se resolvía a mano, con riesgo de errores de cantidad y de etiquetas incorrectas.
 
-## 💡 La solución
+## <img src="docs/readme/ic-solucion.svg" width="24" height="24" alt=""> La solución
 
 **Iron Screw** es una aplicación Laravel de uso interno, para personal de depósito y administración:
 
@@ -36,7 +36,7 @@ Los roles y permisos definen qué puede ver y cambiar cada usuario.
 
 <img src="docs/readme/divider.svg" alt="" width="100%">
 
-## ✨ Funcionalidades
+## <img src="docs/readme/ic-funcionalidades.svg" width="24" height="24" alt=""> Funcionalidades
 
 **Órdenes** (rol: depósito y administración)
 - Consulta, búsqueda y paginación de órdenes; las canceladas quedan fuera del flujo operativo.
@@ -53,7 +53,7 @@ Los roles y permisos definen qué puede ver y cambiar cada usuario.
 
 <img src="docs/readme/divider.svg" alt="" width="100%">
 
-## 🏗️ Arquitectura
+## <img src="docs/readme/ic-arquitectura.svg" width="24" height="24" alt=""> Arquitectura
 
 Monolito Laravel con vistas Blade del lado del servidor. JavaScript resuelve interacciones locales, el guardado asíncrono de ajustes y la impresión. Los controladores coordinan los casos de uso; Eloquent persiste los datos locales y la copia de la respuesta externa.
 
@@ -78,7 +78,7 @@ flowchart LR
 
 <img src="docs/readme/divider.svg" alt="" width="100%">
 
-## 🔄 Flujos de trabajo
+## <img src="docs/readme/ic-flujos.svg" width="24" height="24" alt=""> Flujos de trabajo
 
 **Sincronización de una orden**
 
@@ -118,7 +118,7 @@ sequenceDiagram
 
 <img src="docs/readme/divider.svg" alt="" width="100%">
 
-## 🗃️ Modelo de datos
+## <img src="docs/readme/ic-datos.svg" width="24" height="24" alt=""> Modelo de datos
 
 Eloquent con 23 migraciones y 5 modelos principales.
 
@@ -150,7 +150,7 @@ Una orden elimina sus artículos en cascada. El usuario que ajustó una etiqueta
 
 <img src="docs/readme/divider.svg" alt="" width="100%">
 
-## 🧭 Criterios y decisiones
+## <img src="docs/readme/ic-criterios.svg" width="24" height="24" alt=""> Criterios y decisiones
 
 - **Contabilium es la fuente comercial, la base local es la operativa.** La configuración de etiquetas y el estado local viven aquí, y no se escriben de vuelta en el sistema externo.
 - **Los ajustes locales sobreviven a la sincronización.** Antes de reemplazar artículos, el servicio recupera y vuelve a asociar los ajustes de etiqueta.
@@ -165,7 +165,7 @@ Una orden elimina sus artículos en cascada. El usuario que ajustó una etiqueta
 
 <img src="docs/readme/divider.svg" alt="" width="100%">
 
-## 🧱 Stack
+## <img src="docs/readme/ic-stack.svg" width="24" height="24" alt=""> Stack
 
 | Capa | Tecnología | Versión |
 | --- | --- | --- |
@@ -179,7 +179,7 @@ Una orden elimina sus artículos en cascada. El usuario que ajustó una etiqueta
 
 <img src="docs/readme/divider.svg" alt="" width="100%">
 
-## 🗂️ Estructura del repo
+## <img src="docs/readme/ic-estructura.svg" width="24" height="24" alt=""> Estructura del repo
 
 ```text
 app/Http/Controllers/   órdenes, productos, usuarios, roles e importación
@@ -195,7 +195,7 @@ tests/                  pruebas feature y unitarias (41 métodos de prueba)
 
 <img src="docs/readme/divider.svg" alt="" width="100%">
 
-## 🚀 Puesta en marcha
+## <img src="docs/readme/ic-arranque.svg" width="24" height="24" alt=""> Puesta en marcha
 
 Requisitos: PHP 8.3+, Composer, Node.js, npm y MySQL.
 
@@ -212,7 +212,7 @@ Variables relevantes (por nombre): `DB_*`, credenciales de la API de Contabilium
 
 <img src="docs/readme/divider.svg" alt="" width="100%">
 
-## 🧪 Pruebas y calidad
+## <img src="docs/readme/ic-pruebas.svg" width="24" height="24" alt=""> Pruebas y calidad
 
 La suite tiene 41 métodos de prueba entre feature y unitarias: autenticación y permisos, administración de productos, usuarios y roles, sincronización con respuestas simuladas, cola y circuit breaker, reglas de empaquetado, impresión por lote e importación y exportación XLSX.
 
@@ -228,7 +228,7 @@ No se publica un resultado de ejecución: en la inspección no estaban instalado
 
 <img src="docs/readme/divider.svg" alt="" width="100%">
 
-## 🚢 Despliegue
+## <img src="docs/readme/ic-despliegue.svg" width="24" height="24" alt=""> Despliegue
 
 Pensado para un servidor que exponga solo `public/`. Requiere:
 
@@ -245,7 +245,7 @@ Además, el Scheduler debe invocarse cada minuto con `php artisan schedule:run`.
 
 <img src="docs/readme/divider.svg" alt="" width="100%">
 
-## 📌 Estado y pendientes
+## <img src="docs/readme/ic-estado.svg" width="24" height="24" alt=""> Estado y pendientes
 
 - **Estado:** sistema interno funcional, con autenticación, sincronización, administración e impresión de etiquetas. Producción no verificada.
 - **Último commit:** 2026-08-12, `FIX TAM 80 X 50`, en el historial local.
@@ -253,7 +253,7 @@ Además, el Scheduler debe invocarse cada minuto con `php artisan schedule:run`.
 
 <img src="docs/readme/divider.svg" alt="" width="100%">
 
-## 📄 Licencia y autoría
+## <img src="docs/readme/ic-licencia.svg" width="24" height="24" alt=""> Licencia y autoría
 
 Desarrollado por el **Ing. Santiago Abasto**.
 
